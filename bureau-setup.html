@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>S4Pay — Bureau Setup: PAYE & Pay Frequencies</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #f4f7f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const S4 = {
+  navy:'#0d3d4f', navyMid:'#1a5568', teal:'#1d8a9a', tealLight:'#e6f4f6',
+  tealBorder:'#a8d8df', cardBg:'#eef4f7', pageBg:'#f4f7f9',
+  text:'#1a2e35', subtext:'#6b8a94', border:'#d0e2e8',
+  amber:'#f59e0b', amberLight:'#fef3c7', amberBorder:'#fcd34d',
+  green:'#059669', greenLight:'#d1fae5',
+  red:'#dc2626', redLight:'#fee2e2', redBorder:'#fca5a5',
+  purple:'#7c3aed', purpleLight:'#ede9fe',
+};
+
+const PENDING_ORGS = [
+  { id:'org1', name:'The Anchor Group',     sites:4, employees:62,  type:'Hospitality', initials:'AG', color:'#0891b2' },
+  { id:'org2', name:'Brightstone Care Ltd', sites:2, employees:38,  type:'Healthcare',  initials:'BC', color:'#7c3aed' },
+  { id:'org3', name:'Metro Retail Partners',sites:6, employees:118, type:'Retail',      initials:'MR', color:'#d97706' },
+  { id:'org4', name:'Summit Facilities',    sites:3, employees:45,  type:'Facilities',  initials:'SF', color:'#16a34a' },
+];
+
+const ALL_SITES    = ['Head Office','Site A – Birmingham','Site B – Manchester','Site C – Leeds','Site D – Bristol'];
+const PAY_TYPES    = ['Salary','Weekly','Daily','Hourly'];
+const FREQ_OPTIONS = ['Weekly','Fortnightly','Four-Weekly','Monthly','Quarterly'];
+const METHOD_OPT   = ['BACS','Cheque','Cash'];
+
+// ── Date helpers ──────────────────────────────────────────────────────────────
+function fmt(d) { return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; }
+function toISO(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function fromISO(s) { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+
+const UK_BH = new Set([
+  '2024-01-01','2024-03-29','2024-04-01','2024-05-06','2024-05-27','2024-08-26','2024-12-25','2024-12-26',
+  '2025-01-01','2025-04-18','2025-04-21','2025-05-05','2025-05-26','2025-08-25','2025-12-25','2025-12-26',
+  '2026-01-01','2026-04-03','2026-04-06','2026-05-04','2026-05-25','2026-08-31','2026-12-25','2026-12-28',
+]);
+function isWorkingDay(d) { const w=d.getDay(); return w!==0&&w!==6&&!UK_BH.has(toISO(d)); }
+function subtractWD(d,n) {
+  let r=new Date(d),c=0;
+  while(c<n){r.setDate(r.getDate()-1);if(isWorkingDay(r))c++;}
+  while(!isWorkingDay(r))r.setDate(r.getDate()-1);
+  return r;
+}
+function calcDeadlines(payDate,method) {
+  const cut=method==='BACS'?3:method==='Bank Transfer'?2:1;
+  const co=subtractWD(payDate,cut);
+  return { cutOffDate:fmt(co), queryDeadline:fmt(subtractWD(co,1)), bacsApproval:fmt(new Date(co)) };
+}
+function taxYearEnd(d) {
+  const y=d.getFullYear(), a=new Date(y,3,5);
+  return d<=a?a:new Date(y+1,3,5);
+}
+function generateSchedule(freq,firstPayDate,method) {
+  if(!firstPayDate) return [];
+  const [dd,mm,yy]=firstPayDate.split('/').map(Number);
+  if(!dd||!mm||!yy) return [];
+  const base=new Date(yy,mm-1,dd), yearEnd=taxYearEnd(base), pm=method||'BACS';
+  const freqDays={'Weekly':7,'Fortnightly':14,'Four-Weekly':28};
+  const rows=[]; let period=0, payDate=new Date(base);
+  while(payDate<=yearEnd){
+    period++;
+    let pStart,pEnd;
+    if(freq==='Monthly'||freq==='Quarterly'){
+      pEnd=new Date(payDate); pStart=new Date(payDate.getFullYear(),payDate.getMonth(),1);
+    } else {
+      pEnd=new Date(payDate); pStart=new Date(payDate);
+      pStart.setDate(pStart.getDate()-((freqDays[freq]||7)-1));
+    }
+    const dl=calcDeadlines(payDate,pm);
+    rows.push({period,startDate:fmt(pStart),endDate:fmt(pEnd),payDate:fmt(payDate),...dl});
+    const next=new Date(payDate);
+    if(freq==='Monthly')next.setMonth(next.getMonth()+1);
+    else if(freq==='Quarterly')next.setMonth(next.getMonth()+3);
+    else next.setDate(next.getDate()+(freqDays[freq]||7));
+    payDate=next;
+  }
+  return rows;
+}
+
+// ── Primitives ────────────────────────────────────────────────────────────────
+const Avatar = ({initials,color,size=36}) => (
+  <div style={{width:size,height:size,borderRadius:'50%',background:color,color:'#fff',
+    fontSize:size*0.35,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+    {initials}
+  </div>
+);
+
+const Btn = ({children,onClick,disabled,outline,sm,danger,ghost,full}) => {
+  const bg=disabled?'#e2e8f0':danger?S4.red:(outline||ghost)?'transparent':S4.navy;
+  const color=disabled?'#94a3b8':danger?'#fff':outline?S4.navy:ghost?S4.subtext:'#fff';
+  const bdr=disabled?'#e2e8f0':danger?S4.red:ghost?S4.border:S4.navy;
+  return <button onClick={disabled?undefined:onClick} disabled={disabled}
+    style={{background:bg,color,border:`1.5px solid ${bdr}`,borderRadius:8,
+      padding:sm?'5px 13px':'8px 18px',fontSize:sm?12:13,fontWeight:600,
+      cursor:disabled?'not-allowed':'pointer',display:'inline-flex',alignItems:'center',
+      gap:6,whiteSpace:'nowrap',width:full?'100%':undefined,justifyContent:full?'center':undefined}}>
+    {children}
+  </button>;
+};
+
+const Lbl = ({children,required}) => (
+  <div style={{fontSize:11,fontWeight:700,color:S4.subtext,marginBottom:4,textTransform:'uppercase',letterSpacing:0.4}}>
+    {children}{required&&<span style={{color:S4.red,marginLeft:2}}>*</span>}
+  </div>
+);
+
+const Inp = ({value,onChange,placeholder,prefix,readOnly,mono}) => (
+  <div style={{display:'flex',border:`1px solid ${S4.border}`,borderRadius:8,overflow:'hidden',background:readOnly?S4.cardBg:'#fff'}}>
+    {prefix&&<span style={{padding:'8px 10px',background:S4.cardBg,fontSize:12,color:S4.subtext,borderRight:`1px solid ${S4.border}`,flexShrink:0}}>{prefix}</span>}
+    <input value={value} onChange={onChange} placeholder={placeholder} readOnly={readOnly}
+      style={{flex:1,padding:'8px 10px',fontSize:13,border:'none',outline:'none',
+        color:S4.text,background:'transparent',minWidth:0,fontFamily:mono?'monospace':'inherit'}} />
+  </div>
+);
+
+const Sel = ({value,onChange,children,disabled}) => (
+  <select value={value} onChange={onChange} disabled={disabled}
+    style={{width:'100%',border:`1px solid ${S4.border}`,borderRadius:8,padding:'8px 10px',
+      fontSize:13,background:disabled?S4.cardBg:'#fff',color:S4.text,outline:'none'}}>
+    {children}
+  </select>
+);
+
+const Banner = ({type,children}) => {
+  const cfg={
+    info:{bg:'#eff6ff',border:'#bfdbfe',color:'#1d4ed8',icon:'ℹ'},
+    amber:{bg:S4.amberLight,border:S4.amberBorder,color:'#92400e',icon:'⚠'},
+    success:{bg:S4.greenLight,border:'#6ee7b7',color:'#065f46',icon:'✓'},
+    error:{bg:S4.redLight,border:S4.redBorder,color:S4.red,icon:'✕'},
+  }[type]||{};
+  return <div style={{background:cfg.bg,border:`1px solid ${cfg.border}`,borderRadius:8,padding:'10px 14px',fontSize:12,color:cfg.color,display:'flex',gap:8}}>
+    <span style={{flexShrink:0,fontWeight:700}}>{cfg.icon}</span><span>{children}</span>
+  </div>;
+};
+
+const Pill = ({children,color='teal'}) => {
+  const cfg={
+    teal:{bg:S4.tealLight,color:S4.teal},green:{bg:S4.greenLight,color:S4.green},
+    amber:{bg:S4.amberLight,color:'#92400e'},navy:{bg:'#e0eaf0',color:S4.navy},
+    red:{bg:S4.redLight,color:S4.red},
+  }[color]||{bg:S4.tealLight,color:S4.teal};
+  return <span style={{background:cfg.bg,color:cfg.color,borderRadius:999,padding:'2px 10px',fontSize:11,fontWeight:700}}>{children}</span>;
+};
+
+const SecHead = ({children}) => (
+  <div style={{fontSize:11,fontWeight:700,color:S4.subtext,textTransform:'uppercase',letterSpacing:0.8,marginBottom:10,paddingBottom:6,borderBottom:`1px solid ${S4.border}`}}>{children}</div>
+);
+
+const ModalShell = ({title,subtitle,badge,badgeColor,onClose,children,footer,maxWidth=600}) => (
+  <div style={{position:'fixed',inset:0,background:'rgba(13,61,79,0.55)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:300,padding:16}}>
+    <div style={{background:'#fff',borderRadius:12,boxShadow:'0 24px 64px rgba(0,0,0,0.22)',width:'100%',maxWidth,maxHeight:'92vh',display:'flex',flexDirection:'column'}}>
+      <div style={{background:S4.cardBg,borderBottom:`1px solid ${S4.border}`,borderRadius:'12px 12px 0 0',padding:'14px 20px',display:'flex',alignItems:'flex-start',justifyContent:'space-between',flexShrink:0}}>
+        <div>
+          {badge&&<div style={{background:badgeColor||S4.tealLight,color:badgeColor?'#fff':S4.teal,borderRadius:6,padding:'2px 8px',fontSize:10,fontWeight:700,marginBottom:5,display:'inline-block',textTransform:'uppercase',letterSpacing:0.5}}>{badge}</div>}
+          <div style={{fontWeight:700,color:S4.text,fontSize:15}}>{title}</div>
+          {subtitle&&<div style={{fontSize:12,color:S4.subtext,marginTop:2}}>{subtitle}</div>}
+        </div>
+        <button onClick={onClose} style={{background:'none',border:'none',fontSize:20,color:'#94a3b8',cursor:'pointer',marginLeft:12,flexShrink:0,lineHeight:1}}>✕</button>
+      </div>
+      <div style={{overflowY:'auto',flex:1,padding:20}}>{children}</div>
+      {footer&&<div style={{borderTop:`1px solid ${S4.border}`,background:S4.cardBg,borderRadius:'0 0 12px 12px',padding:'12px 20px',flexShrink:0}}>{footer}</div>}
+    </div>
+  </div>
+);
+
+const YesNo = ({label,desc,value,onChange}) => (
+  <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,padding:'12px 14px',background:'#fff',border:`1px solid ${S4.border}`,borderRadius:8}}>
+    <div style={{flex:1}}>
+      <div style={{fontSize:13,fontWeight:600,color:S4.text}}>{label}</div>
+      {desc&&<div style={{fontSize:11,color:S4.subtext,marginTop:2}}>{desc}</div>}
+    </div>
+    <div style={{display:'flex',gap:6,flexShrink:0}}>
+      {['Yes','No'].map(opt=>(
+        <button key={opt} onClick={()=>onChange(opt)}
+          style={{padding:'5px 16px',borderRadius:6,
+            border:`1.5px solid ${value===opt?(opt==='Yes'?S4.teal:'#64748b'):S4.border}`,
+            background:value===opt?(opt==='Yes'?S4.tealLight:'#f1f5f9'):'#fff',
+            cursor:'pointer',fontSize:12,fontWeight:700,
+            color:value===opt?(opt==='Yes'?S4.teal:S4.text):S4.subtext}}>
+          {opt}
+        </button>
+      ))}
+    </div>
+  </div>
+);
+
+// ── Journey Bar ───────────────────────────────────────────────────────────────
+function JourneyBar({step}) {
+  const steps = [
+    {id:1,label:'Pending Setup'},{id:2,label:'PAYE Scheme'},{id:3,label:'Organisation'},
+    {id:4,label:'Pay Frequency'},{id:5,label:'Schedule Preview'},{id:6,label:'Dashboard'},
+  ];
+  return (
+    <div style={{background:S4.navy,padding:'10px 28px',position:'sticky',top:0,zIndex:100}}>
+      <div style={{maxWidth:1100,margin:'0 auto',display:'flex',alignItems:'center',gap:0}}>
+        <span style={{color:'#94c5cf',fontSize:12,fontWeight:700,marginRight:20,whiteSpace:'nowrap'}}>Bureau Setup</span>
+        <div style={{display:'flex',alignItems:'center',flex:1,gap:0,flexWrap:'wrap'}}>
+          {steps.map((s,i)=>{
+            const done=s.id<step, active=s.id===step;
+            return (
+              <React.Fragment key={s.id}>
+                <div style={{display:'flex',alignItems:'center',gap:5,padding:'4px 11px',borderRadius:999,fontSize:11,fontWeight:700,
+                  background:done?S4.greenLight:active?S4.teal:'transparent',
+                  color:done?S4.green:active?'#fff':'#94a3b8',
+                  border:active?'none':done?'none':'1px solid rgba(255,255,255,0.15)'}}>
+                  {done&&<span>✓</span>}
+                  {!done&&<span style={{width:15,height:15,borderRadius:'50%',background:active?'rgba(255,255,255,0.25)':'rgba(255,255,255,0.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:900}}>{s.id}</span>}
+                  {s.label}
+                </div>
+                {i<steps.length-1&&<div style={{width:18,height:1,background:done?S4.green:'rgba(255,255,255,0.2)',flexShrink:0}}/>}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Screen 1: Pending Setup ───────────────────────────────────────────────────
+function PendingSetup({onSetup}) {
+  return (
+    <div style={{padding:'24px 28px',maxWidth:1100,margin:'0 auto'}}>
+      <div style={{marginBottom:18}}>
+        <h1 style={{fontSize:20,fontWeight:700,color:S4.text,margin:0}}>Pending Payroll Setup</h1>
+        <p style={{fontSize:13,color:S4.subtext,marginTop:4}}>Organisations awaiting payroll configuration. Complete PAYE setup, configure pay frequencies and generate schedules before they go live.</p>
+      </div>
+      <Banner type="info">4 organisations are pending payroll setup. Configure each one to unlock payroll processing.</Banner>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:14,marginTop:16}}>
+        {PENDING_ORGS.map(org=>(
+          <div key={org.id} style={{background:'#fff',border:`1px solid ${S4.border}`,borderRadius:12,padding:18,display:'flex',flexDirection:'column',gap:14}}>
+            <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12}}>
+              <div style={{display:'flex',gap:12,alignItems:'center'}}>
+                <Avatar initials={org.initials} color={org.color} size={44}/>
+                <div>
+                  <div style={{fontWeight:700,fontSize:15,color:S4.text}}>{org.name}</div>
+                  <div style={{fontSize:12,color:S4.subtext,marginTop:2}}>{org.type}</div>
+                </div>
+              </div>
+              <Pill color="amber">Pending</Pill>
+            </div>
+            <div style={{display:'flex',gap:12}}>
+              {[['Sites',org.sites],['Employees',org.employees]].map(([lbl,val])=>(
+                <div key={lbl} style={{background:S4.cardBg,borderRadius:8,padding:'8px 14px',flex:1,textAlign:'center'}}>
+                  <div style={{fontSize:18,fontWeight:700,color:S4.text}}>{val}</div>
+                  <div style={{fontSize:11,color:S4.subtext}}>{lbl}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              {['No PAYE scheme','No pay frequency'].map(t=>(
+                <div key={t} style={{flex:1,background:S4.redLight,borderRadius:8,padding:'6px 10px',display:'flex',alignItems:'center',gap:6}}>
+                  <span style={{color:S4.red,fontSize:12}}>✕</span>
+                  <span style={{fontSize:11,color:S4.red,fontWeight:600}}>{t}</span>
+                </div>
+              ))}
+            </div>
+            <Btn onClick={()=>onSetup(org)} full>▶ Setup payroll</Btn>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Modal: Create PAYE Scheme ─────────────────────────────────────────────────
+function CreatePAYEModal({org,onClose,onSave}) {
+  const [form,setForm] = useState({
+    payeRef:'',payeRefName:'',accountsOfficeRef:'',utr:'',
+    allSites:null,sites:[],
+    employmentAllowance:null,apprenticeshipLevy:null,smallEmployerRelief:null,
+    schemeEndDate:'',
+  });
+  const [errors,setErrors] = useState({});
+  const up = (k,v) => setForm(f=>({...f,[k]:v}));
+  const toggleSite = s => up('sites',form.sites.includes(s)?form.sites.filter(x=>x!==s):[...form.sites,s]);
+  const handleAllSites = val => { up('allSites',val); val==='yes'?up('sites',[...ALL_SITES]):up('sites',[]); };
+
+  const validate = () => {
+    const e={};
+    const paye=form.payeRef.trim().toUpperCase();
+    const aor=form.accountsOfficeRef.trim().toUpperCase();
+    const utr=form.utr.replace(/\s/g,'');
+    if(!paye) e.payeRef='Enter your employer PAYE reference';
+    else if(!/^\d{3}\/[A-Z0-9]{1,10}$/.test(paye)) e.payeRef='Enter a valid employer PAYE reference, like 123/AB456';
+    if(!aor) e.accountsOfficeRef='Enter your accounts office reference number';
+    else if(!/^\d{3}P[A-Z]\d{8}$/.test(aor)) e.accountsOfficeRef='Enter a valid accounts office reference, like 123PA00045678';
+    if(utr&&!/^\d{10}$/.test(utr)) e.utr='Enter a valid 10-digit Unique Taxpayer Reference';
+    if(form.allSites===null) e.allSites='Select whether this scheme covers all sites';
+    else if(form.allSites==='no'&&form.sites.length===0) e.sites='Select at least one site';
+    setErrors(e);
+    return Object.keys(e).length===0;
+  };
+
+  return ModalShell({
+    badge:'SPR-182', badgeColor:S4.teal,
+    title:'Create PAYE Scheme',
+    subtitle:'Set up the HMRC PAYE scheme for this organisation',
+    onClose, maxWidth:680,
+    footer:(
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span style={{fontSize:11,color:S4.subtext}}>Saved and visible on Organisation Settings → PAYE tab</span>
+        <div style={{display:'flex',gap:10}}>
+          <Btn outline onClick={onClose}>Cancel</Btn>
+          <Btn onClick={()=>{if(validate())onSave(form);}}>Save &amp; Continue →</Btn>
+        </div>
+      </div>
+    ),
+    children:(
+      <div style={{display:'flex',flexDirection:'column',gap:18}}>
+        <Banner type="info">Ensure all HMRC reference numbers match your HMRC Online account exactly — these are used for all RTI submissions.</Banner>
+        <div>
+          <Lbl>Organisation</Lbl>
+          <div style={{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',background:S4.cardBg,border:`1px solid ${S4.border}`,borderRadius:8}}>
+            <Avatar initials={org.initials} color={org.color} size={24}/>
+            <span style={{fontSize:13,fontWeight:600,color:S4.text}}>{org.name}</span>
+            <span style={{fontSize:11,color:S4.subtext,marginLeft:4}}>· {org.type}</span>
+          </div>
+        </div>
+        <SecHead>HMRC Reference Numbers</SecHead>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          <div>
+            <Lbl required>Employer PAYE Reference</Lbl>
+            <Inp value={form.payeRef} onChange={e=>up('payeRef',e.target.value.toUpperCase())} placeholder="120/A0045678" mono/>
+            {errors.payeRef
+              ?<div style={{fontSize:11,color:S4.red,marginTop:3}}>{errors.payeRef}</div>
+              :<div style={{fontSize:11,color:S4.subtext,marginTop:3}}>3 numbers, a slash, then up to 10 characters — e.g. <strong>123/AB456</strong></div>}
+          </div>
+          <div>
+            <Lbl>PAYE Reference Name</Lbl>
+            <Inp value={form.payeRefName} onChange={e=>up('payeRefName',e.target.value)} placeholder="e.g. Main PAYE scheme"/>
+            <div style={{fontSize:11,color:S4.subtext,marginTop:3}}>Internal label to identify this scheme</div>
+          </div>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          <div>
+            <Lbl required>Accounts Office Reference</Lbl>
+            <Inp value={form.accountsOfficeRef} onChange={e=>up('accountsOfficeRef',e.target.value.toUpperCase())} placeholder="120PA00045678" mono/>
+            {errors.accountsOfficeRef
+              ?<div style={{fontSize:11,color:S4.red,marginTop:3}}>{errors.accountsOfficeRef}</div>
+              :<div style={{fontSize:11,color:S4.subtext,marginTop:3}}>13 characters — 3 numbers, P, a letter, 8 numbers. e.g. <strong>123PA00045678</strong></div>}
+          </div>
+          <div>
+            <Lbl>Unique Taxpayer Reference (UTR)</Lbl>
+            <Inp value={form.utr} onChange={e=>up('utr',e.target.value)} placeholder="12345 67890" mono/>
+            {errors.utr
+              ?<div style={{fontSize:11,color:S4.red,marginTop:3}}>{errors.utr}</div>
+              :<div style={{fontSize:11,color:S4.subtext,marginTop:3}}>10 digits — found on HMRC correspondence. Spaces allowed.</div>}
+          </div>
+        </div>
+        <SecHead>Site Association</SecHead>
+        <div>
+          <Lbl required>Does this PAYE scheme cover all sites?</Lbl>
+          <div style={{display:'flex',gap:10,marginTop:4}}>
+            {[{val:'yes',label:'Yes — all sites',desc:`All ${ALL_SITES.length} sites assigned automatically`},{val:'no',label:'No — select sites',desc:'Choose which sites are covered below'}].map(opt=>(
+              <button key={opt.val} onClick={()=>handleAllSites(opt.val)}
+                style={{flex:1,padding:'10px 14px',borderRadius:8,border:`2px solid ${form.allSites===opt.val?S4.teal:S4.border}`,background:form.allSites===opt.val?S4.tealLight:'#fff',cursor:'pointer',textAlign:'left'}}>
+                <div style={{fontSize:13,fontWeight:700,color:form.allSites===opt.val?S4.teal:S4.text}}>{opt.label}</div>
+                <div style={{fontSize:11,color:S4.subtext,marginTop:2}}>{opt.desc}</div>
+              </button>
+            ))}
+          </div>
+          {errors.allSites&&<div style={{fontSize:11,color:S4.red,marginTop:4}}>{errors.allSites}</div>}
+        </div>
+        {form.allSites==='yes'&&(
+          <div style={{background:S4.greenLight,border:'1px solid #6ee7b7',borderRadius:8,padding:'10px 14px',fontSize:12,color:'#065f46',display:'flex',gap:8}}>
+            <span>✓</span><span>All {ALL_SITES.length} sites covered: {ALL_SITES.join(', ')}</span>
+          </div>
+        )}
+        {form.allSites==='no'&&(
+          <div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+              <Lbl required>Select sites covered</Lbl>
+              <div style={{display:'flex',gap:8}}>
+                <button onClick={()=>up('sites',[...ALL_SITES])} style={{fontSize:11,color:S4.teal,background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}>Select all</button>
+                <span style={{color:S4.border}}>|</span>
+                <button onClick={()=>up('sites',[])} style={{fontSize:11,color:S4.subtext,background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}>Clear</button>
+              </div>
+            </div>
+            <div style={{border:`1px solid ${errors.sites?S4.red:S4.border}`,borderRadius:8,overflow:'hidden'}}>
+              {ALL_SITES.map((s,i)=>(
+                <label key={s} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',
+                  background:form.sites.includes(s)?S4.tealLight:i%2===0?'#fff':'#fafcfd',
+                  borderBottom:i<ALL_SITES.length-1?`1px solid ${S4.border}`:'none',cursor:'pointer'}}>
+                  <input type="checkbox" checked={form.sites.includes(s)} onChange={()=>toggleSite(s)} style={{accentColor:S4.teal,width:15,height:15}}/>
+                  <span style={{fontSize:13,color:S4.text}}>{s}</span>
+                  {form.sites.includes(s)&&<Pill color="teal">Included</Pill>}
+                </label>
+              ))}
+            </div>
+            {errors.sites
+              ?<div style={{fontSize:11,color:S4.red,marginTop:4}}>{errors.sites}</div>
+              :<div style={{fontSize:11,color:S4.subtext,marginTop:4}}>{form.sites.length} of {ALL_SITES.length} sites selected</div>}
+          </div>
+        )}
+        <SecHead>Scheme Options</SecHead>
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          <YesNo label="Claim Employment Allowance" desc="Reduce employer's Class 1 NI liability by up to £5,000 per tax year" value={form.employmentAllowance} onChange={v=>up('employmentAllowance',v)}/>
+          <YesNo label="Apprenticeship Levy" desc="Applies if your annual pay bill is over £3 million — 0.5% levy on pay bill above the £3m allowance" value={form.apprenticeshipLevy} onChange={v=>up('apprenticeshipLevy',v)}/>
+          <YesNo label="Small Employer Relief" desc="Recover 103% of statutory maternity, paternity and adoption pay — eligible if NI contributions were £45,000 or less in the previous tax year" value={form.smallEmployerRelief} onChange={v=>up('smallEmployerRelief',v)}/>
+        </div>
+        <SecHead>Scheme Dates</SecHead>
+        <div style={{maxWidth:'50%'}}>
+          <Lbl>PAYE Scheme End Date</Lbl>
+          <Inp value={form.schemeEndDate} onChange={e=>up('schemeEndDate',e.target.value)} placeholder="DD/MM/YYYY"/>
+          <div style={{fontSize:11,color:S4.subtext,marginTop:3}}>Leave blank if this is an ongoing scheme.</div>
+        </div>
+      </div>
+    ),
+  });
+}
+
+// ── Modal: Create Pay Frequency ───────────────────────────────────────────────
+function CreateFreqModal({org,onClose,onSave}) {
+  const [form,setForm] = useState({name:'',frequency:'',payTypes:[],firstPayDate:'',paymentMethod:'BACS',bacsLeadDays:'3',autoCalc:true,lockOnFreeze:true});
+  const up = (k,v) => setForm(f=>({...f,[k]:v}));
+  const togglePT = pt => up('payTypes',form.payTypes.includes(pt)?form.payTypes.filter(x=>x!==pt):[...form.payTypes,pt]);
+  const canProceed = form.name&&form.frequency&&form.payTypes.length>0&&form.firstPayDate;
+
+  return ModalShell({
+    badge:'SPR-1132', badgeColor:S4.teal,
+    title:'Create Pay Frequency',
+    subtitle:`Configure a new pay frequency for ${org.name}`,
+    onClose, maxWidth:650,
+    footer:(
+      <div style={{display:'flex',justifyContent:'flex-end',gap:10}}>
+        <Btn outline onClick={onClose}>Cancel</Btn>
+        <Btn disabled={!canProceed} onClick={()=>onSave(form)}>Preview Schedule →</Btn>
+      </div>
+    ),
+    children:(
+      <div style={{display:'flex',flexDirection:'column',gap:16}}>
+        <SecHead>Basic Details</SecHead>
+        <div>
+          <Lbl required>Pay Frequency Name</Lbl>
+          <Inp value={form.name} onChange={e=>up('name',e.target.value)} placeholder="e.g. Monthly – Salaried Staff"/>
+          <div style={{fontSize:11,color:S4.subtext,marginTop:3}}>Used to identify this frequency on the dashboard and in reports</div>
+        </div>
+        <div>
+          <Lbl required>Frequency</Lbl>
+          <Sel value={form.frequency} onChange={e=>up('frequency',e.target.value)}>
+            <option value="">Select frequency…</option>
+            {FREQ_OPTIONS.map(f=><option key={f} value={f}>{f}</option>)}
+          </Sel>
+        </div>
+        <SecHead>Pay Types</SecHead>
+        <div>
+          <Lbl required>Pay types included in this frequency</Lbl>
+          <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:4}}>
+            {PAY_TYPES.map(pt=>{
+              const sel=form.payTypes.includes(pt);
+              return <button key={pt} onClick={()=>togglePT(pt)}
+                style={{padding:'5px 12px',borderRadius:999,border:`1.5px solid ${sel?S4.teal:S4.border}`,
+                  background:sel?S4.tealLight:'#fff',color:sel?S4.teal:S4.subtext,
+                  fontSize:12,fontWeight:sel?700:400,cursor:'pointer'}}>
+                {sel&&'✓ '}{pt}
+              </button>;
+            })}
+          </div>
+        </div>
+        <SecHead>Dates</SecHead>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          <div>
+            <Lbl required>First Pay Date</Lbl>
+            <Inp value={form.firstPayDate} onChange={e=>up('firstPayDate',e.target.value)} placeholder="DD/MM/YYYY"/>
+            <div style={{fontSize:11,color:S4.subtext,marginTop:3}}>S4Pay auto-generates all future pay dates from this</div>
+          </div>
+          <div>
+            <Lbl>Tax Period Start</Lbl>
+            <Inp value={form.taxPeriodStart||''} onChange={e=>up('taxPeriodStart',e.target.value)} placeholder="DD/MM/YYYY (optional)"/>
+          </div>
+        </div>
+        <SecHead>Payment Method</SecHead>
+        <div style={{display:'flex',gap:10}}>
+          {METHOD_OPT.map(m=>(
+            <button key={m} onClick={()=>up('paymentMethod',m)}
+              style={{flex:1,padding:'10px 14px',borderRadius:8,border:`2px solid ${form.paymentMethod===m?S4.teal:S4.border}`,
+                background:form.paymentMethod===m?S4.tealLight:'#fff',color:form.paymentMethod===m?S4.teal:S4.subtext,
+                fontWeight:form.paymentMethod===m?700:400,cursor:'pointer',fontSize:13}}>
+              {m}
+            </button>
+          ))}
+        </div>
+        {form.paymentMethod==='BACS'&&(
+          <div>
+            <Lbl>BACS Lead Days</Lbl>
+            <Sel value={form.bacsLeadDays} onChange={e=>up('bacsLeadDays',e.target.value)}>
+              {['1','2','3','4','5'].map(d=><option key={d} value={d}>{d} day{d!=='1'?'s':''} before pay date</option>)}
+            </Sel>
+            <div style={{fontSize:11,color:S4.subtext,marginTop:3}}>Approval deadline = pay date minus BACS lead days</div>
+          </div>
+        )}
+        <SecHead>Automation</SecHead>
+        <div style={{background:S4.cardBg,borderRadius:10,padding:14,display:'flex',flexDirection:'column',gap:10}}>
+          {[
+            {key:'autoCalc',label:'Auto-calculate on period open',desc:'Automatically run calculations when each pay period opens'},
+            {key:'lockOnFreeze',label:'Lock payroll on freeze date',desc:'Prevent amendments after the freeze date is reached'},
+          ].map(opt=>(
+            <label key={opt.key} style={{display:'flex',alignItems:'flex-start',gap:10,cursor:'pointer'}}>
+              <input type="checkbox" checked={form[opt.key]} onChange={e=>up(opt.key,e.target.checked)} style={{accentColor:S4.teal,marginTop:2}}/>
+              <div><div style={{fontSize:13,fontWeight:600,color:S4.text}}>{opt.label}</div><div style={{fontSize:11,color:S4.subtext,marginTop:2}}>{opt.desc}</div></div>
+            </label>
+          ))}
+        </div>
+      </div>
+    ),
+  });
+}
+
+// ── Modal: Edit Pay Frequency ─────────────────────────────────────────────────
+function EditFreqModal({freq,onClose,onSave}) {
+  const [form,setForm] = useState({name:freq.name,method:freq.method,bacsLeadDays:'3',applyFrom:'next'});
+  const up=(k,v)=>setForm(f=>({...f,[k]:v}));
+  return ModalShell({
+    badge:'SPR-1135', badgeColor:S4.navy,
+    title:`Edit Pay Frequency — ${freq.name}`,
+    subtitle:'Changes apply from the next pay period only',
+    onClose, maxWidth:520,
+    footer:<div style={{display:'flex',justifyContent:'flex-end',gap:10}}><Btn outline onClick={onClose}>Cancel</Btn><Btn onClick={()=>onSave(form)}>Save Changes →</Btn></div>,
+    children:(
+      <div style={{display:'flex',flexDirection:'column',gap:14}}>
+        <Banner type="amber">Changes to pay frequency settings can only take effect from a future pay period. Historic pay runs are locked and cannot be modified.</Banner>
+        <div><Lbl>Frequency Name</Lbl><Inp value={form.name} onChange={e=>up('name',e.target.value)}/></div>
+        <div>
+          <Lbl>Payment Method</Lbl>
+          <div style={{display:'flex',gap:8}}>
+            {METHOD_OPT.map(m=>(
+              <button key={m} onClick={()=>up('method',m)}
+                style={{flex:1,padding:'8px 12px',borderRadius:8,border:`2px solid ${form.method===m?S4.teal:S4.border}`,
+                  background:form.method===m?S4.tealLight:'#fff',color:form.method===m?S4.teal:S4.subtext,
+                  fontWeight:form.method===m?700:400,cursor:'pointer',fontSize:12}}>{m}</button>
+            ))}
+          </div>
+        </div>
+        {form.method==='BACS'&&(
+          <div><Lbl>BACS Lead Days</Lbl>
+            <Sel value={form.bacsLeadDays} onChange={e=>up('bacsLeadDays',e.target.value)}>
+              {['1','2','3','4','5'].map(d=><option key={d} value={d}>{d} day{d!=='1'?'s':''} before pay date</option>)}
+            </Sel>
+          </div>
+        )}
+        <div>
+          <Lbl required>Apply changes from</Lbl>
+          <div style={{display:'flex',flexDirection:'column',gap:8,marginTop:4}}>
+            {[
+              {val:'next',label:'Next pay period',desc:`Takes effect from ${freq.nextPay} — recommended`},
+              {val:'specific',label:'Specific future period',desc:'Choose a start date from the pay schedule'},
+            ].map(opt=>(
+              <label key={opt.val} style={{display:'flex',gap:10,padding:12,border:`2px solid ${form.applyFrom===opt.val?S4.teal:S4.border}`,borderRadius:8,cursor:'pointer',background:form.applyFrom===opt.val?S4.tealLight:'#fff'}}>
+                <input type="radio" value={opt.val} checked={form.applyFrom===opt.val} onChange={()=>up('applyFrom',opt.val)} style={{accentColor:S4.teal,marginTop:2}}/>
+                <div><div style={{fontSize:13,fontWeight:600,color:S4.text}}>{opt.label}</div><div style={{fontSize:11,color:S4.subtext,marginTop:2}}>{opt.desc}</div></div>
+              </label>
+            ))}
+          </div>
+        </div>
+        <div style={{background:S4.cardBg,borderRadius:8,padding:12,fontSize:12,color:S4.subtext}}>
+          <strong style={{color:S4.text}}>Locked:</strong> Frequency type and first pay date cannot be changed after creation. Create a new pay frequency to change these.
+        </div>
+      </div>
+    ),
+  });
+}
+
+// ── Screen 5: Schedule Preview ────────────────────────────────────────────────
+function SchedulePreview({org,freqForm,onBack,onConfirm}) {
+  const pm=freqForm.paymentMethod||'BACS';
+  const base=generateSchedule(freqForm.frequency,freqForm.firstPayDate||'28/03/2025',pm);
+  const fallback=generateSchedule('Monthly','28/03/2025',pm);
+  const [schedule,setSchedule]=useState(base.length?base:fallback);
+  const [editingIdx,setEditingIdx]=useState(null);
+  const [calVal,setCalVal]=useState('');
+
+  const applyEdit=idx=>{
+    if(!calVal){setEditingIdx(null);return;}
+    const newPD=fromISO(calVal);
+    const dl=calcDeadlines(newPD,pm);
+    setSchedule(s=>s.map((r,i)=>i===idx?{...r,payDate:fmt(newPD),...dl}:r));
+    setEditingIdx(null);
+  };
+
+  const periods=schedule.length;
+  const taxYrEnd=schedule.length?schedule[schedule.length-1].payDate:'—';
+
+  return (
+    <div style={{padding:'24px 28px',maxWidth:1200,margin:'0 auto'}}>
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:16,gap:12,flexWrap:'wrap'}}>
+        <div>
+          <h1 style={{fontSize:19,fontWeight:700,color:S4.text,margin:0}}>Pay Schedule Preview</h1>
+          <p style={{fontSize:13,color:S4.subtext,marginTop:4}}>
+            <strong>{freqForm.name||`${freqForm.frequency} pay run`}</strong> · {periods} periods to tax year end · {pm} payment method
+          </p>
+        </div>
+        <div style={{display:'flex',gap:10}}>
+          <Btn outline onClick={onBack}>← Edit frequency</Btn>
+          <Btn onClick={onConfirm}>Generate &amp; Save Schedule ✓</Btn>
+        </div>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:10,marginBottom:14}}>
+        {[
+          ['Frequency',freqForm.frequency||'–'],
+          ['First Pay Date',freqForm.firstPayDate||'28/03/2025'],
+          ['Payment Method',pm],
+          ['Pay Types',`${freqForm.payTypes?.length||0} selected`],
+          ['Periods generated',`${periods} (to ${taxYrEnd})`],
+        ].map(([lbl,val])=>(
+          <div key={lbl} style={{background:'#fff',border:`1px solid ${S4.border}`,borderRadius:8,padding:'10px 14px'}}>
+            <div style={{fontSize:11,color:S4.subtext}}>{lbl}</div>
+            <div style={{fontSize:12,fontWeight:700,color:S4.text,marginTop:3}}>{val}</div>
+          </div>
+        ))}
+      </div>
+
+      <Banner type="info">
+        Deadlines are calculated in working days, excluding weekends and UK bank holidays. Edit a Pay Date to dynamically recalculate all deadlines for that period. Once saved the schedule is stored against this PAYE and pay frequency.
+      </Banner>
+
+      <div style={{display:'flex',gap:16,flexWrap:'wrap',marginTop:12,marginBottom:6}}>
+        {[
+          {dot:S4.red,label:'Cut-off Date',desc:pm==='BACS'?'3 working days before pay date':pm==='Bank Transfer'?'2 working days before pay date':'1 working day before pay date'},
+          {dot:S4.amber,label:'Query Deadline',desc:'1 working day before cut-off'},
+          {dot:S4.teal,label:'BACS Approval',desc:'Same as cut-off — payroll must be approved by this date'},
+        ].map(item=>(
+          <div key={item.label} style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:S4.subtext}}>
+            <span style={{width:8,height:8,borderRadius:'50%',background:item.dot,flexShrink:0,display:'inline-block'}}></span>
+            <strong style={{color:S4.text}}>{item.label}</strong>
+            <span>— {item.desc}</span>
+          </div>
+        ))}
+      </div>
+
+      <div style={{marginTop:8,border:`1px solid ${S4.border}`,borderRadius:10,overflow:'hidden',overflowX:'auto'}}>
+        <div style={{display:'grid',gridTemplateColumns:'44px 100px 100px 110px 110px 120px 130px 44px',background:S4.navy,padding:'10px 14px',gap:8,minWidth:760}}>
+          {['P#','Period Start','Period End','Cut-off Date','Query Deadline','BACS Approval','Pay Date',''].map((h,i)=>(
+            <div key={i} style={{color:'#fff',fontSize:10,fontWeight:700,lineHeight:1.3}}>{h}</div>
+          ))}
+        </div>
+        {schedule.map((row,idx)=>(
+          <div key={idx} style={{display:'grid',gridTemplateColumns:'44px 100px 100px 110px 110px 120px 130px 44px',padding:'9px 14px',gap:8,alignItems:'center',
+            borderBottom:idx<schedule.length-1?`1px solid ${S4.border}`:'none',
+            background:editingIdx===idx?S4.tealLight:idx%2===0?'#fff':'#fafcfd',minWidth:760}}>
+            <div style={{fontSize:11,fontWeight:700,color:S4.subtext}}>P{row.period}</div>
+            <div style={{fontSize:11,color:S4.text}}>{row.startDate}</div>
+            <div style={{fontSize:11,color:S4.text}}>{row.endDate}</div>
+            <div style={{fontSize:11,color:S4.red,fontWeight:600}}>{row.cutOffDate}</div>
+            <div style={{fontSize:11,color:'#d97706',fontWeight:600}}>{row.queryDeadline}</div>
+            <div style={{fontSize:11,color:S4.teal,fontWeight:600}}>{row.bacsApproval}</div>
+            <div>
+              {editingIdx===idx?(
+                <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                  <input type="date" value={calVal} onChange={e=>setCalVal(e.target.value)}
+                    style={{border:`1.5px solid ${S4.teal}`,borderRadius:6,padding:'3px 6px',fontSize:11,outline:'none',width:'100%',background:'#fff'}}/>
+                  <div style={{display:'flex',gap:4}}>
+                    <button onClick={()=>applyEdit(idx)} style={{flex:1,background:S4.teal,color:'#fff',border:'none',borderRadius:4,padding:'3px 0',cursor:'pointer',fontSize:10,fontWeight:700}}>Apply</button>
+                    <button onClick={()=>setEditingIdx(null)} style={{flex:1,background:'none',border:`1px solid ${S4.border}`,borderRadius:4,padding:'3px 0',cursor:'pointer',fontSize:10,color:S4.subtext}}>Cancel</button>
+                  </div>
+                </div>
+              ):(
+                <button onClick={()=>{setEditingIdx(idx);const[d,m,y]=row.payDate.split('/');setCalVal(`${y}-${m}-${d}`);}}
+                  style={{background:'none',border:`1px solid ${S4.border}`,borderRadius:6,padding:'4px 8px',cursor:'pointer',fontSize:11,color:S4.text,display:'flex',alignItems:'center',gap:4,width:'100%',justifyContent:'space-between'}}>
+                  <span style={{fontWeight:600}}>{row.payDate}</span>
+                  <span style={{color:'#94a3b8',fontSize:9}}>✏</span>
+                </button>
+              )}
+            </div>
+            <div>{idx===0&&<Pill color="teal">Next</Pill>}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{marginTop:10,display:'flex',justifyContent:'flex-end'}}>
+        <Btn onClick={onConfirm}>Generate &amp; Save Schedule ✓</Btn>
+      </div>
+    </div>
+  );
+}
+
+// ── Screen 6: Organisation Dashboard ─────────────────────────────────────────
+function OrgDashboard({org,payeSchemes,frequencies,onAddFreq,onOrgSettings,onViewSchedule}) {
+  const [editFreq,setEditFreq]=useState(null);
+  const latestPAYE=payeSchemes&&payeSchemes[0];
+
+  return (
+    <div style={{padding:'24px 28px',maxWidth:1100,margin:'0 auto'}}>
+      {/* Org header card */}
+      <div style={{background:'#fff',border:`1px solid ${S4.border}`,borderRadius:12,marginBottom:20,overflow:'hidden'}}>
+        <div style={{background:S4.navy,padding:'16px 22px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
+          <div style={{display:'flex',alignItems:'center',gap:14}}>
+            <Avatar initials={org.initials} color={org.color} size={48}/>
+            <div>
+              <div style={{color:'#fff',fontWeight:700,fontSize:18}}>{org.name}</div>
+              <div style={{color:'#94c5cf',fontSize:12,marginTop:2}}>{org.type} · {org.sites} sites · {org.employees} employees</div>
+            </div>
+          </div>
+          <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+            {latestPAYE?<Pill color="green">✓ PAYE Configured</Pill>:<Pill color="amber">PAYE Pending</Pill>}
+            <Pill color="green">✓ Active</Pill>
+            <button onClick={onOrgSettings}
+              style={{background:'rgba(255,255,255,0.15)',border:'none',borderRadius:6,padding:'5px 12px',color:'#fff',cursor:'pointer',fontSize:11,fontWeight:600}}>
+              ⚙ Org Settings
+            </button>
+          </div>
+        </div>
+        {/* PAYE summary strip */}
+        <div style={{padding:'10px 22px',background:S4.cardBg,borderTop:`1px solid ${S4.border}`,display:'flex',gap:20,flexWrap:'wrap',alignItems:'center'}}>
+          {latestPAYE?(
+            <>
+              {[
+                ['PAYE Ref',latestPAYE.payeRef||'—'],
+                ['Accounts Office',latestPAYE.accountsOfficeRef||'—'],
+                ['Ref Name',latestPAYE.payeRefName||'—'],
+              ].map(([lbl,val])=>(
+                <div key={lbl}><span style={{fontSize:11,color:S4.subtext}}>{lbl}: </span><span style={{fontSize:12,fontWeight:700,color:S4.text,fontFamily:'monospace'}}>{val}</span></div>
+              ))}
+              <div style={{marginLeft:'auto',display:'flex',gap:8}}>
+                {[['Employment Allowance',latestPAYE.employmentAllowance],['Apprenticeship Levy',latestPAYE.apprenticeshipLevy],['SER',latestPAYE.smallEmployerRelief]].map(([lbl,val])=>(
+                  val?<span key={lbl} style={{background:val==='Yes'?S4.greenLight:S4.cardBg,color:val==='Yes'?S4.green:S4.subtext,borderRadius:999,padding:'2px 8px',fontSize:11,fontWeight:700,border:`1px solid ${val==='Yes'?'#6ee7b7':S4.border}`}}>{lbl}: {val}</span>:null
+                ))}
+              </div>
+            </>
+          ):(
+            <button onClick={onOrgSettings} style={{fontSize:12,color:S4.teal,background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}>
+              ＋ Create PAYE scheme in Org Settings →
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Frequencies header */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+        <div>
+          <h2 style={{fontSize:16,fontWeight:700,color:S4.text,margin:0}}>Pay Frequencies</h2>
+          <p style={{fontSize:12,color:S4.subtext,marginTop:3}}>Next pay day, approval deadline, payment method and pay types for each frequency.</p>
+        </div>
+        <div style={{display:'flex',gap:8}}>
+          <Btn outline onClick={onOrgSettings}>⚙ Org Settings</Btn>
+          <Btn onClick={onAddFreq}>＋ Add pay frequency</Btn>
+        </div>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:14}}>
+        {frequencies.map(freq=>(
+          <div key={freq.id} style={{background:'#fff',border:`1px solid ${S4.border}`,borderRadius:12,overflow:'hidden'}}>
+            <div style={{background:S4.navy,padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div>
+                <div style={{color:'#fff',fontWeight:700,fontSize:14}}>{freq.name}</div>
+                <div style={{color:'#94c5cf',fontSize:11,marginTop:2}}>{freq.freq} · {freq.method}</div>
+              </div>
+              <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                <Pill color="green">Active</Pill>
+                <button onClick={()=>setEditFreq(freq)}
+                  style={{background:'rgba(255,255,255,0.15)',border:'none',borderRadius:6,padding:'4px 10px',color:'#fff',cursor:'pointer',fontSize:11,fontWeight:600}}>✏ Edit</button>
+              </div>
+            </div>
+            <div style={{padding:16,display:'flex',flexDirection:'column',gap:12}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                <div style={{background:'#f0fdf4',border:'1px solid #6ee7b7',borderRadius:8,padding:'10px 14px'}}>
+                  <div style={{fontSize:10,fontWeight:700,color:S4.green,textTransform:'uppercase',letterSpacing:0.5}}>Next Pay Day</div>
+                  <div style={{fontSize:17,fontWeight:800,color:S4.text,marginTop:3}}>{freq.nextPay}</div>
+                </div>
+                <div style={{background:S4.amberLight,border:`1px solid ${S4.amberBorder}`,borderRadius:8,padding:'10px 14px'}}>
+                  <div style={{fontSize:10,fontWeight:700,color:'#92400e',textTransform:'uppercase',letterSpacing:0.5}}>Approval Deadline</div>
+                  <div style={{fontSize:17,fontWeight:800,color:S4.text,marginTop:3}}>{freq.deadline}</div>
+                </div>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',background:S4.cardBg,borderRadius:8}}>
+                <span style={{fontSize:14}}>💳</span>
+                <span style={{fontSize:12,color:S4.subtext}}>Payment method:</span>
+                <span style={{fontSize:13,fontWeight:700,color:S4.text}}>{freq.method}</span>
+              </div>
+              <div>
+                <div style={{fontSize:11,color:S4.subtext,marginBottom:6}}>Pay types included:</div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                  {freq.types.map(t=><span key={t} style={{background:S4.tealLight,color:S4.teal,borderRadius:999,padding:'2px 10px',fontSize:11,fontWeight:600}}>{t}</span>)}
+                </div>
+              </div>
+              <div style={{display:'flex',gap:8,paddingTop:4,borderTop:`1px solid ${S4.border}`}}>
+                <Btn sm ghost full onClick={()=>onViewSchedule&&onViewSchedule(freq)}>View schedule</Btn>
+                <Btn sm ghost full>Process payroll →</Btn>
+              </div>
+            </div>
+          </div>
+        ))}
+        <button onClick={onAddFreq}
+          style={{background:'none',border:`2px dashed ${S4.border}`,borderRadius:12,padding:24,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,cursor:'pointer',minHeight:220}}>
+          <div style={{width:44,height:44,background:S4.tealLight,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,color:S4.teal}}>＋</div>
+          <div style={{fontWeight:700,color:S4.teal,fontSize:13}}>Add pay frequency</div>
+          <div style={{fontSize:11,color:S4.subtext,textAlign:'center'}}>Create a new weekly, fortnightly or monthly pay run</div>
+        </button>
+      </div>
+
+      {editFreq && <EditFreqModal freq={editFreq} onClose={()=>setEditFreq(null)} onSave={()=>setEditFreq(null)} />}
+    </div>
+  );
+}
+
+// ── Screen 3: Org Settings (PAYE tab) ─────────────────────────────────────────
+function OrgSettingsScreen({org,payeSchemes,onBack,onAddFreq,onAddPAYE}) {
+  const [activeTab,setActiveTab]=useState('PAYE');
+  const payeData=payeSchemes[0]||null;
+
+  return (
+    <div style={{padding:'24px 28px',maxWidth:1100,margin:'0 auto'}}>
+      <button onClick={onBack} style={{fontSize:12,color:S4.teal,background:'none',border:'none',cursor:'pointer',marginBottom:14,display:'flex',alignItems:'center',gap:4}}>
+        ← Back to Organisation Dashboard
+      </button>
+      <div style={{background:'#fff',border:`1px solid ${S4.border}`,borderRadius:12,marginBottom:20}}>
+        <div style={{background:S4.navy,borderRadius:'12px 12px 0 0',padding:'16px 22px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
+          <div style={{display:'flex',alignItems:'center',gap:14}}>
+            <Avatar initials={org.initials} color={org.color} size={48}/>
+            <div>
+              <div style={{color:'#fff',fontWeight:700,fontSize:17}}>{org.name}</div>
+              <div style={{color:'#94c5cf',fontSize:12,marginTop:2}}>{org.type} · {org.sites} sites · {org.employees} employees</div>
+            </div>
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            {payeData?<Pill color="green">✓ PAYE Configured</Pill>:<Pill color="amber">PAYE Pending</Pill>}
+          </div>
+        </div>
+        <div style={{borderBottom:`1px solid ${S4.border}`,padding:'0 20px',display:'flex'}}>
+          {['PAYE','Sites','Documents'].map(tab=>(
+            <button key={tab} onClick={()=>setActiveTab(tab)}
+              style={{padding:'11px 16px',fontSize:13,fontWeight:600,cursor:'pointer',background:'none',border:'none',
+                color:activeTab===tab?S4.teal:S4.subtext,
+                borderBottom:activeTab===tab?`2.5px solid ${S4.teal}`:'2.5px solid transparent',marginBottom:-1}}>
+              {tab}
+            </button>
+          ))}
+        </div>
+        {activeTab==='PAYE'&&(
+          <div style={{padding:20,display:'flex',flexDirection:'column',gap:16}}>
+            {!payeData?(
+              <>
+                <Banner type="amber">No PAYE scheme has been configured for this organisation. Create one below to unlock payroll processing and YTD uploads.</Banner>
+                <div style={{display:'flex',justifyContent:'center',paddingTop:8}}>
+                  <Btn onClick={onAddPAYE}>＋ Create PAYE Scheme</Btn>
+                </div>
+              </>
+            ):(
+              <>
+                <SecHead>PAYE Scheme Details</SecHead>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:12}}>
+                  {[
+                    ['Employer PAYE Reference',payeData.payeRef||'120/A0045678'],
+                    ['PAYE Reference Name',payeData.payeRefName||'Main PAYE scheme'],
+                    ['Accounts Office Ref',payeData.accountsOfficeRef||'120PA00045678'],
+                    ['UTR',payeData.utr||'—'],
+                  ].map(([lbl,val])=>(
+                    <div key={lbl} style={{background:S4.cardBg,borderRadius:8,padding:'10px 14px'}}>
+                      <div style={{fontSize:11,color:S4.subtext}}>{lbl}</div>
+                      <div style={{fontSize:14,fontWeight:700,color:S4.text,marginTop:3,fontFamily:'monospace'}}>{val}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10}}>
+                  {[
+                    ['Employment Allowance',payeData.employmentAllowance],
+                    ['Apprenticeship Levy',payeData.apprenticeshipLevy],
+                    ['Small Employer Relief',payeData.smallEmployerRelief],
+                  ].map(([lbl,val])=>(
+                    <div key={lbl} style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',
+                      background:val==='Yes'?S4.greenLight:S4.cardBg,
+                      border:`1px solid ${val==='Yes'?'#6ee7b7':S4.border}`,borderRadius:8}}>
+                      <span style={{fontSize:14}}>{val==='Yes'?'✓':val==='No'?'✕':'○'}</span>
+                      <div>
+                        <div style={{fontSize:12,color:val==='Yes'?S4.green:S4.subtext,fontWeight:700}}>{lbl}</div>
+                        <div style={{fontSize:11,color:val==='Yes'?'#065f46':'#94a3b8'}}>{val||'Not set'}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {(payeData.sites?.length>0||payeData.allSites)&&(
+                  <div style={{background:S4.cardBg,borderRadius:8,padding:'10px 14px'}}>
+                    <div style={{fontSize:11,color:S4.subtext,marginBottom:4}}>Sites covered</div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                      {payeData.allSites==='yes'
+                        ?<Pill color="teal">All {ALL_SITES.length} sites</Pill>
+                        :payeData.sites?.map(s=><span key={s} style={{background:S4.tealLight,color:S4.teal,borderRadius:999,padding:'2px 10px',fontSize:11,fontWeight:600}}>{s}</span>)}
+                    </div>
+                  </div>
+                )}
+                {payeData.schemeEndDate&&(
+                  <div style={{background:S4.amberLight,border:`1px solid ${S4.amberBorder}`,borderRadius:8,padding:'10px 14px',fontSize:12,color:'#92400e',display:'flex',gap:8}}>
+                    <span>📅</span><span>Scheme end date: <strong>{payeData.schemeEndDate}</strong></span>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+        {activeTab!=='PAYE'&&(
+          <div style={{padding:40,textAlign:'center',color:'#94a3b8',fontSize:13}}>{activeTab} — not in scope for this wireframe</div>
+        )}
+      </div>
+      <div style={{display:'flex',justifyContent:'flex-end',gap:10}}>
+        <Btn outline onClick={onBack}>← Back to Dashboard</Btn>
+        <Btn onClick={onAddFreq}>＋ Add Pay Frequency</Btn>
+      </div>
+    </div>
+  );
+}
+
+// ── Root App ──────────────────────────────────────────────────────────────────
+function App() {
+  const [step,setStep]           = useState(1);
+  const [screen,setScreen]       = useState('pending');
+  const [activeOrg,setActiveOrg] = useState(null);
+  const [payeSchemes,setPayeSchemes] = useState([]);
+  const [freqForm,setFreqForm]   = useState(null);
+  const [freqs,setFreqs]         = useState([
+    {id:'f1',name:'Monthly – Salaried',freq:'Monthly', nextPay:'28 Mar 2025',deadline:'24 Mar 2025',method:'BACS',types:['Basic Salary','Bonus']},
+    {id:'f2',name:'Weekly – Hourly',   freq:'Weekly',  nextPay:'07 Apr 2025',deadline:'04 Apr 2025',method:'BACS',types:['Hourly Pay','Shift Allowance']},
+  ]);
+  const [showPAYE,setShowPAYE]   = useState(false);
+  const [showFreq,setShowFreq]   = useState(false);
+
+  const handleSetup = org => { setActiveOrg(org); setStep(2); setShowPAYE(true); };
+
+  const handlePAYESave = data => {
+    setPayeSchemes(p=>[...p,{id:`paye-${Date.now()}`,...data}]);
+    setShowPAYE(false); setStep(3); setScreen('dashboard');
+  };
+
+  const handleFreqSave = data => {
+    setFreqForm(data); setShowFreq(false); setStep(5); setScreen('schedule');
+  };
+
+  const handleScheduleConfirm = () => {
+    const nf={
+      id:`f-${Date.now()}`,
+      name:freqForm.name||`${freqForm.frequency} – ${activeOrg.name}`,
+      freq:freqForm.frequency||'Monthly',
+      nextPay:freqForm.firstPayDate||'28 Mar 2025',
+      deadline:'24 Mar 2025',
+      method:freqForm.paymentMethod||'BACS',
+      types:freqForm.payTypes||[],
+    };
+    setFreqs(p=>[...p,nf]); setStep(6); setScreen('dashboard');
+  };
+
+  const goToDashboard   = () => { setScreen('dashboard'); setStep(payeSchemes.length>0?6:3); };
+  const goToOrgSettings = () => { setScreen('org_settings'); setStep(3); };
+  const goToAddFreq     = () => { setStep(4); setShowFreq(true); };
+  const goToAddPAYE     = () => { setStep(2); setShowPAYE(true); };
+
+  const resetAll = () => {
+    setStep(1); setScreen('pending'); setActiveOrg(null);
+    setPayeSchemes([]); setFreqForm(null); setShowPAYE(false); setShowFreq(false);
+    setFreqs([
+      {id:'f1',name:'Monthly – Salaried',freq:'Monthly',nextPay:'28 Mar 2025',deadline:'24 Mar 2025',method:'BACS',types:['Basic Salary','Bonus']},
+      {id:'f2',name:'Weekly – Hourly',freq:'Weekly',nextPay:'07 Apr 2025',deadline:'04 Apr 2025',method:'BACS',types:['Hourly Pay','Shift Allowance']},
+    ]);
+  };
+
+  return (
+    <div style={{minHeight:'100vh',background:S4.pageBg}}>
+      <JourneyBar step={step} />
+
+      {screen==='pending'      && <PendingSetup onSetup={handleSetup} />}
+      {screen==='dashboard'    && activeOrg && <OrgDashboard org={activeOrg} payeSchemes={payeSchemes} frequencies={freqs} onAddFreq={goToAddFreq} onOrgSettings={goToOrgSettings} />}
+      {screen==='org_settings' && activeOrg && <OrgSettingsScreen org={activeOrg} payeSchemes={payeSchemes} onBack={goToDashboard} onAddFreq={goToAddFreq} onAddPAYE={goToAddPAYE} />}
+      {screen==='schedule'     && activeOrg && freqForm && <SchedulePreview org={activeOrg} freqForm={freqForm} onBack={()=>{setStep(4);setShowFreq(true);setScreen('dashboard');}} onConfirm={handleScheduleConfirm} />}
+
+      {showPAYE && activeOrg && <CreatePAYEModal org={activeOrg} onClose={()=>{setShowPAYE(false);setScreen('pending');setStep(1);}} onSave={handlePAYESave} />}
+      {showFreq && activeOrg && <CreateFreqModal org={activeOrg} onClose={()=>setShowFreq(false)} onSave={handleFreqSave} />}
+
+      <div style={{textAlign:'center',padding:'12px 0 20px'}}>
+        <button onClick={resetAll} style={{fontSize:11,color:'#94a3b8',background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}>↺ Reset wireframe</button>
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>

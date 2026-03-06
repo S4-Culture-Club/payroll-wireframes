@@ -3,1266 +3,290 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S4Pay — Payroll Amendments Wireframe</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <title>S4Pay — Wireframe Portal</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #f4f7f9; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f4f7f9;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Top nav ── */
+    .nav {
+      background: #0d3d4f;
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .nav-logo {
+      width: 32px; height: 32px;
+      background: #1d8a9a;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; color: #fff; font-size: 16px;
+    }
+    .nav-title { color: #fff; font-weight: 700; font-size: 16px; }
+    .nav-sub   { color: #94c5cf; font-size: 12px; margin-top: 1px; }
+    .nav-badge {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #94c5cf;
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #0d3d4f 0%, #1a6b7a 100%);
+      padding: 52px 32px 48px;
+      text-align: center;
+    }
+    .hero-eyebrow {
+      display: inline-block;
+      background: rgba(29,138,154,0.35);
+      border: 1px solid rgba(29,138,154,0.5);
+      color: #7dd8e2;
+      border-radius: 999px;
+      padding: 4px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .hero h1 { color: #fff; font-size: 32px; font-weight: 800; margin-bottom: 12px; line-height: 1.2; }
+    .hero p  { color: #94c5cf; font-size: 15px; max-width: 520px; margin: 0 auto; line-height: 1.6; }
+
+    /* ── Main content ── */
+    .main {
+      flex: 1;
+      padding: 44px 32px 60px;
+      max-width: 920px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #6b8a94;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 20px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #d0e2e8;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    /* ── Journey card ── */
+    .card {
+      background: #fff;
+      border: 1.5px solid #d0e2e8;
+      border-radius: 14px;
+      overflow: hidden;
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+      cursor: pointer;
+    }
+    .card:hover {
+      border-color: #1d8a9a;
+      box-shadow: 0 8px 32px rgba(13,61,79,0.12);
+      transform: translateY(-2px);
+    }
+    .card-header {
+      padding: 22px 22px 18px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .card-icon {
+      width: 52px; height: 52px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .card-meta { flex: 1; min-width: 0; }
+    .card-badge {
+      display: inline-block;
+      border-radius: 5px;
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .card-title { font-size: 17px; font-weight: 700; color: #1a2e35; margin-bottom: 5px; }
+    .card-desc  { font-size: 13px; color: #6b8a94; line-height: 1.55; }
+
+    .card-steps {
+      margin: 0 22px;
+      padding: 14px 0;
+      border-top: 1px solid #d0e2e8;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .step-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .step-num {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: #eef4f7;
+      color: #6b8a94;
+      font-size: 10px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-label { font-size: 12px; color: #1a2e35; font-weight: 500; }
+
+    .card-footer {
+      margin: 14px 22px 22px;
+      background: #0d3d4f;
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      padding: 11px;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+      text-decoration: none;
+    }
+    .card:hover .card-footer { background: #1a6b7a; }
+
+    /* ── Info strip ── */
+    .info-strip {
+      margin-top: 32px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 12px;
+      color: #1d4ed8;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .info-strip span:first-child { flex-shrink: 0; font-weight: 700; }
+
+    /* ── Footer ── */
+    footer {
+      background: #fff;
+      border-top: 1px solid #d0e2e8;
+      padding: 16px 32px;
+      text-align: center;
+      font-size: 11px;
+      color: #94a3b8;
+    }
   </style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel">
-const { useState, useEffect } = React;
 
-// ─── S4labour design tokens ───────────────────────────────────────────────────
-const S4 = {
-  darkTeal:   '#0d3d4f',
-  midTeal:    '#1a6b7a',
-  lightTeal:  '#e6f4f6',
-  cardBg:     '#eef4f7',
-  pageBg:     '#f4f7f9',
-  text:       '#1a2e35',
-  subtext:    '#6b8a94',
-  border:     '#d0e2e8',
-  amber:      '#f59e0b',
-  amberLight: '#fef3c7',
-  amberBorder:'#fcd34d',
-  green:      '#059669',
-  greenLight: '#d1fae5',
-  red:        '#dc2626',
-  redLight:   '#fee2e2',
-};
-
-const EMPLOYEES = [
-  { id: '001', name: 'John Smith',     initials: 'JS', color: '#6366f1', area: 'Head office', taxCode: '1257L', w1m1: 'N', sl: 'N', hours: '173.25', gross: '£2,450.00' },
-  { id: '002', name: 'Sarah Williams', initials: 'SW', color: '#ec4899', area: 'Head office', taxCode: '1257L', w1m1: 'N', sl: 'N', hours: '281.50', gross: '£3,100.00' },
-  { id: '003', name: 'Michael Brown',  initials: 'MB', color: '#0891b2', area: 'FOH',         taxCode: '1257L', w1m1: 'N', sl: 'N', hours: '158.60', gross: '£2,800.00' },
-  { id: '004', name: 'Emma Davis',     initials: 'ED', color: '#16a34a', area: 'BOH',         taxCode: '1257L', w1m1: 'N', sl: 'N', hours: '146.00', gross: '£1,950.00' },
-  { id: '005', name: 'James Wilson',   initials: 'JW', color: '#d97706', area: 'BOH',         taxCode: '1257L', w1m1: 'N', sl: 'N', hours: '213.30', gross: '£3,500.00' },
-];
-
-const PAY_ELEMENTS = [
-  'Basic Salary','Bonus','Commission','Car Allowance','London Weighting',
-  'Shift Allowance','On-Call Allowance','Statutory Sick Pay',
-  'Statutory Maternity Pay','Pension Adjustment','Tax Code Correction','NI Adjustment',
-];
-
-const CARDS = [
-  { label: 'Net Pay',               before: '£10,544.55', after: '£14,545.55', diff: '+£4,001.00' },
-  { label: 'Gross Pay',             before: '£13,800.00', after: '£14,170.00', diff: '+£370.00'   },
-  { label: 'Pension contributions', before: '£1,240.00',  after: '£1,273.30',  diff: '+£33.30'    },
-  { label: 'HMRC payments',         before: '£1,800.45',  after: '£1,847.20',  diff: '+£46.75'    },
-];
-
-// ─── Shared UI primitives ─────────────────────────────────────────────────────
-const Avatar = ({ emp, size = 32 }) => (
-  <div style={{ width: size, height: size, borderRadius: '50%', background: emp.color, color: '#fff', fontSize: size * 0.36, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-    {emp.initials}
-  </div>
-);
-
-const TealBtn = ({ children, onClick, disabled, outline, sm, danger }) => {
-  const bg    = disabled ? '#cbd5e1' : danger ? S4.red    : outline ? 'transparent' : S4.darkTeal;
-  const color = disabled ? '#94a3b8' : danger ? '#fff'    : outline ? (danger ? S4.red : S4.darkTeal) : '#fff';
-  const border= disabled ? '#cbd5e1' : danger ? S4.red    : S4.darkTeal;
-  return (
-    <button onClick={disabled ? undefined : onClick} disabled={disabled}
-      style={{ background: bg, color, border: `1.5px solid ${border}`, borderRadius: 8, padding: sm ? '5px 14px' : '8px 18px', fontSize: sm ? 12 : 13, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
-      {children}
-    </button>
-  );
-};
-
-const FieldLabel = ({ children }) => (
-  <div style={{ fontSize: 11, fontWeight: 700, color: S4.subtext, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.4 }}>{children}</div>
-);
-
-const S4Select = ({ value, onChange, children }) => (
-  <select value={value} onChange={onChange} style={{ width: '100%', border: `1px solid ${S4.border}`, borderRadius: 8, padding: '8px 10px', fontSize: 13, background: '#fff', color: S4.text, outline: 'none' }}>
-    {children}
-  </select>
-);
-
-const S4Input = ({ value, onChange, placeholder, prefix }) => (
-  <div style={{ display: 'flex', border: `1px solid ${S4.border}`, borderRadius: 8, overflow: 'hidden', background: '#fff' }}>
-    {prefix && <span style={{ padding: '8px 10px', background: S4.cardBg, fontSize: 13, color: S4.subtext, borderRight: `1px solid ${S4.border}`, flexShrink: 0 }}>{prefix}</span>}
-    <input value={value} onChange={onChange} placeholder={placeholder}
-      style={{ flex: 1, padding: '8px 10px', fontSize: 13, border: 'none', outline: 'none', color: S4.text, background: 'transparent', minWidth: 0, width: '100%' }} />
-  </div>
-);
-
-const ModalShell = ({ title, subtitle, badge, badgeColor, onClose, children, footer, maxWidth = 580 }) => (
-  <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,61,79,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16 }}>
-    <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 24px 64px rgba(0,0,0,0.22)', width: '100%', maxWidth, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ background: S4.cardBg, borderBottom: `1px solid ${S4.border}`, borderRadius: '12px 12px 0 0', padding: '14px 20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexShrink: 0 }}>
-        <div>
-          {badge && <div style={{ background: badgeColor || S4.lightTeal, color: badgeColor ? '#fff' : S4.midTeal, borderRadius: 6, padding: '2px 8px', fontSize: 10, fontWeight: 700, marginBottom: 5, display: 'inline-block', textTransform: 'uppercase', letterSpacing: 0.5 }}>{badge}</div>}
-          <div style={{ fontWeight: 700, color: S4.text, fontSize: 15 }}>{title}</div>
-          {subtitle && <div style={{ fontSize: 12, color: S4.subtext, marginTop: 3 }}>{subtitle}</div>}
-        </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, color: '#94a3b8', cursor: 'pointer', lineHeight: 1, marginLeft: 12, flexShrink: 0 }}>✕</button>
-      </div>
-      <div style={{ overflowY: 'auto', flex: 1, padding: 20 }}>{children}</div>
-      {footer && <div style={{ borderTop: `1px solid ${S4.border}`, background: S4.cardBg, borderRadius: '0 0 12px 12px', padding: '12px 20px', flexShrink: 0 }}>{footer}</div>}
-    </div>
-  </div>
-);
-
-const InfoBanner = ({ color, text }) => (
-  <div style={{ background: color === 'blue' ? '#eff6ff' : color === 'amber' ? S4.amberLight : S4.greenLight, border: `1px solid ${color === 'blue' ? '#bfdbfe' : color === 'amber' ? S4.amberBorder : '#6ee7b7'}`, borderRadius: 8, padding: '10px 14px', fontSize: 12, color: color === 'blue' ? '#1d4ed8' : color === 'amber' ? '#92400e' : '#065f46', display: 'flex', gap: 8 }}>
-    <span style={{ flexShrink: 0 }}>{color === 'blue' ? 'ℹ' : color === 'amber' ? '⚠' : '✓'}</span><span style={{ flex: 1 }}>{text}</span>
-  </div>
-);
-
-const StagedList = ({ items, onRemove, groupByEmp }) => (
-  <div style={{ border: `1px solid ${S4.border}`, borderRadius: 8, overflow: 'hidden' }}>
-    <div style={{ padding: '8px 14px', background: S4.cardBg, borderBottom: `1px solid ${S4.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <span style={{ fontSize: 13, fontWeight: 600, color: S4.text }}>Amendments to Save</span>
-      <span style={{ background: S4.darkTeal, color: '#fff', borderRadius: 999, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>{items.length}</span>
-    </div>
-    {groupByEmp ? (
-      EMPLOYEES.map(emp => {
-        const rows = items.filter(a => a.empId === emp.id);
-        if (!rows.length) return null;
-        return (
-          <div key={emp.id} style={{ borderBottom: `1px solid ${S4.border}` }}>
-            <div style={{ padding: '6px 14px', background: '#f8fafc', borderBottom: `1px solid ${S4.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: S4.text }}>{emp.name}</span>
-              <span style={{ fontSize: 11, color: S4.subtext }}>{rows.length} amendment{rows.length > 1 ? 's' : ''}</span>
-            </div>
-            {rows.map(a => (
-              <div key={a.id} style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <div style={{ fontSize: 12, color: S4.text }}><span style={{ fontWeight: 600 }}>{a.element}</span><span style={{ color: S4.subtext, marginLeft: 6 }}>· £{a.value}</span>{a.desc && <span style={{ color: '#94a3b8', marginLeft: 6, fontStyle: 'italic' }}>{a.desc}</span>}</div>
-                <button onClick={() => onRemove(a.id)} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: 12 }}>Remove</button>
-              </div>
-            ))}
-          </div>
-        );
-      })
-    ) : items.map(a => (
-      <div key={a.id} style={{ padding: '10px 14px', borderBottom: `1px solid ${S4.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: S4.text }}>{a.empName}</div>
-          <div style={{ fontSize: 12, color: S4.subtext }}>{a.element} · <span style={{ fontWeight: 600, color: S4.text }}>£{a.value}</span>{a.desc && <span style={{ fontStyle: 'italic', marginLeft: 4 }}>{a.desc}</span>}</div>
-        </div>
-        <button onClick={() => onRemove(a.id)} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: 12 }}>Remove</button>
-      </div>
-    ))}
-  </div>
-);
-
-// ─── Main component ────────────────────────────────────────────────────────────
-const PayrollAmendmentsWireframe = () => {
-
-  const [status, setStatus]         = useState('Under Review');
-  const [amendments, setAmendments] = useState([]);
-  const [amendHistory, setAmendHistory] = useState([]); // FIX 7: persists after recalculate
-  const [rerunDone, setRerunDone]   = useState(false);
-
-  // Modal visibility
-  const [showAmendConfirm,  setShowAmendConfirm]  = useState(false); // FIX 1
-  const [showApproveConfirm,setShowApproveConfirm]= useState(false); // FIX 10
-  const [showTypeModal,     setShowTypeModal]      = useState(false);
-  const [showSourcePopup,   setShowSourcePopup]    = useState(false);
-  const [showBulkPopup,     setShowBulkPopup]      = useState(false);
-  const [showRotaConfirm,   setShowRotaConfirm]    = useState(false);
-  const [showRowModal,      setShowRowModal]        = useState(false);
-  const [rowEmp,            setRowEmp]             = useState(null);
-  const [showProfile,       setShowProfile]        = useState(false);
-  const [profileEmp,        setProfileEmp]         = useState(null);
-  const [showAmendHistory,  setShowAmendHistory]   = useState(false); // FIX 7
-
-  // Source data form
-  const [srcEmp,    setSrcEmp]    = useState('');
-  const [srcEl,     setSrcEl]     = useState('');
-  const [srcVal,    setSrcVal]    = useState('');
-  const [srcDesc,   setSrcDesc]   = useState('');
-  const [srcStaged, setSrcStaged] = useState([]);
-
-  // Bulk form
-  const [bulkIds,      setBulkIds]      = useState([]);
-  const [bulkActiveId, setBulkActiveId] = useState(null);
-  const [bulkStaged,   setBulkStaged]   = useState([]);
-  const [bulkEl,       setBulkEl]       = useState('');
-  const [bulkVal,      setBulkVal]      = useState('');
-  const [bulkDesc,     setBulkDesc]     = useState('');
-
-  // Profile deductions
-  const [dedRows,    setDedRows]    = useState([
-    { id: 'pd1', start: '21/08/2021', end: '21/08/2026', element: 'Healthcare', amount: '£45',  pending: false },
-    { id: 'pd2', start: '01/01/2020', end: '01/01/2025', element: 'Rent',       amount: '£100', pending: false },
-    { id: 'pd3', start: '30/09/2019', end: '30/12/2025', element: 'Childcare',  amount: '£120', pending: false },
-  ]);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [dedType,  setDedType]  = useState('Deduction');
-  const [dedEl,    setDedEl]    = useState('');
-  const [dedAmt,   setDedAmt]   = useState('');
-  const [dedStart, setDedStart] = useState('');
-  const [dedEnd,   setDedEnd]   = useState('');
-  const [dedToast, setDedToast] = useState(false);
-
-  // Director flag state (per-employee, keyed by emp.id)
-  const [directorMap,      setDirectorMap]      = useState({}); // { empId: { isDirector, appointmentDate, niMethod, saved } }
-  const [showDirConfirm,   setShowDirConfirm]   = useState(false);
-  const [dirSaveSuccess,   setDirSaveSuccess]   = useState(false);
-  const [dirValidation,    setDirValidation]    = useState(false);
-
-  const getDir = (empId) => directorMap[empId] || { isDirector: false, appointmentDate: '', niMethod: 'annual', saved: false };
-  const setDir = (empId, patch) => setDirectorMap(prev => ({ ...prev, [empId]: { ...getDir(empId), ...patch } }));
-
-  // Reactive: if all amendments removed while recalculate required, revert to Amend Payroll
-  useEffect(() => {
-    if (status === 'Recalculate Required' && amendments.length === 0) {
-      setStatus('Amend Payroll');
-    }
-  }, [amendments, status]);
-
-  const removeAmendment = (id) => {
-    setAmendments(p => p.filter(x => x.id !== id));
-  };
-
-  const isAmendMode     = status === 'Amend Payroll';
-  const isRerunRequired = status === 'Recalculate Required';
-  const isApproved      = status === 'Approved';
-  const amendedCount    = [...new Set(amendments.map(a => a.empId))].length;
-  const bulkActiveEmp   = EMPLOYEES.find(e => e.id === bulkActiveId);
-  const selectedEmps    = EMPLOYEES.filter(e => bulkIds.includes(e.id));
-
-  const resetSrc  = () => { setSrcEmp(''); setSrcEl(''); setSrcVal(''); setSrcDesc(''); setSrcStaged([]); };
-  const resetBulk = () => { setBulkIds([]); setBulkActiveId(null); setBulkStaged([]); setBulkEl(''); setBulkVal(''); setBulkDesc(''); };
-  const resetAll  = () => { setStatus('Under Review'); setAmendments([]); setAmendHistory([]); setRerunDone(false); resetSrc(); resetBulk(); };
-
-  // ── Dynamic figure helpers ─────────────────────────────────────────────
-  const parseAmt = (s) => parseFloat(String(s).replace(/[£,]/g, '')) || 0;
-  const fmtAmt   = (n) => '£' + n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-  const BASE_GROSS   = 13800.00;
-  const BASE_NET     = 10544.55;
-  const BASE_PENSION =  1240.00;
-  const BASE_HMRC    =  1800.45;
-  const NET_RATIO     = BASE_NET     / BASE_GROSS;
-  const PENSION_RATIO = BASE_PENSION / BASE_GROSS;
-  const HMRC_RATIO    = BASE_HMRC    / BASE_GROSS;
-
-  // Pending amendments total (not yet recalculated)
-  const pendingTotal  = amendments.reduce((s, a) => s + parseAmt(a.value), 0);
-  // Applied amendments total (post recalculate)
-  const appliedTotal  = amendHistory.reduce((s, a) => s + parseAmt(a.value), 0);
-
-  // What figures to show on the cards
-  const displayGross   = rerunDone ? BASE_GROSS + appliedTotal : BASE_GROSS;
-  const displayNet     = rerunDone ? displayGross * NET_RATIO     : BASE_NET;
-  const displayPension = rerunDone ? displayGross * PENSION_RATIO : BASE_PENSION;
-  const displayHMRC    = rerunDone ? displayGross * HMRC_RATIO    : BASE_HMRC;
-
-  const dynCards = [
-    { label: 'Net Pay',               val: displayNet,     base: BASE_NET,     diff: displayNet     - BASE_NET     },
-    { label: 'Gross Pay',             val: displayGross,   base: BASE_GROSS,   diff: displayGross   - BASE_GROSS   },
-    { label: 'Pension contributions', val: displayPension, base: BASE_PENSION, diff: displayPension - BASE_PENSION },
-    { label: 'HMRC payments',         val: displayHMRC,    base: BASE_HMRC,    diff: displayHMRC    - BASE_HMRC    },
-  ];
-
-  // Per-employee amended gross
-  const empDisplayGross = (emp) => {
-    const base = parseAmt(emp.gross);
-    const pending = amendments.filter(a => a.empId === emp.id).reduce((s,a) => s + parseAmt(a.value), 0);
-    const applied = amendHistory.filter(a => a.empId === emp.id).reduce((s,a) => s + parseAmt(a.value), 0);
-    if (rerunDone) return fmtAmt(base + applied);
-    if (pending > 0) return fmtAmt(base + pending);
-    return emp.gross;
-  };
-
-  const addSrcStaged = () => {
-    if (!srcEmp || !srcEl || !srcVal) return;
-    const e = EMPLOYEES.find(x => x.id === srcEmp);
-    setSrcStaged(p => [...p, { id: Date.now(), empId: srcEmp, empName: e.name, element: srcEl, value: srcVal, desc: srcDesc }]);
-    setSrcEl(''); setSrcVal(''); setSrcDesc('');
-  };
-  const saveSrc = () => {
-    setAmendments(p => [...p, ...srcStaged]);
-    setStatus('Recalculate Required'); setRerunDone(false);
-    setShowSourcePopup(false); resetSrc();
-  };
-
-  // FIX 12: Checkbox toggles selection; row click only focuses
-  const toggleBulkCheck = (e, id) => {
-    e.stopPropagation();
-    setBulkIds(p => {
-      if (p.includes(id)) {
-        const next = p.filter(x => x !== id);
-        if (bulkActiveId === id) setBulkActiveId(next[0] || null);
-        return next;
-      }
-      return [...p, id];
-    });
-  };
-  const focusBulkRow = (id) => {
-    setBulkActiveId(id);
-    setBulkEl(''); setBulkVal(''); setBulkDesc('');
-  };
-
-  const addBulkStaged = () => {
-    if (!bulkEl || !bulkVal) return;
-    const targets = bulkIds.length > 0 ? bulkIds : (bulkActiveId ? [bulkActiveId] : []);
-    if (targets.length === 0) return;
-    const newEntries = targets.map(id => {
-      const emp = EMPLOYEES.find(e => e.id === id);
-      return { id: Date.now() + Math.random(), empId: id, empName: emp.name, element: bulkEl, value: bulkVal, desc: bulkDesc };
-    });
-    setBulkStaged(p => [...p, ...newEntries]);
-    setBulkEl(''); setBulkVal(''); setBulkDesc('');
-  };
-  const saveBulk = () => {
-    setAmendments(p => [...p, ...bulkStaged]);
-    setStatus('Recalculate Required'); setRerunDone(false);
-    setShowBulkPopup(false); resetBulk();
-  };
-
-  // FIX 7: save history before clearing amendments
-  const triggerRerun = () => {
-    setAmendHistory(prev => [...prev, ...amendments]);
-    setStatus('Under Review'); setRerunDone(true); setAmendments([]);
-  };
-
-  const saveDed = () => {
-    if (!dedEl || !dedAmt || !dedStart) return;
-    const row = { id: `pd-${Date.now()}`, start: dedStart, end: dedEnd || 'Ongoing', element: dedEl, amount: dedAmt.startsWith('£') ? dedAmt : `£${dedAmt}`, pending: true, type: dedType };
-    setDedRows(p => [...p, row]);
-    setAmendments(p => [...p, { id: row.id, empId: profileEmp?.id, empName: profileEmp?.name, element: `${dedType}: ${dedEl}`, value: dedAmt.replace('£',''), desc: dedStart + (dedEnd ? ` – ${dedEnd}` : '') }]);
-    setStatus('Recalculate Required'); setRerunDone(false);
-    setDedEl(''); setDedAmt(''); setDedStart(''); setDedEnd(''); setDedType('Deduction');
-    setShowAddForm(false); setDedToast(true); setTimeout(() => setDedToast(false), 3000);
-  };
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // FIX 9: Journey tracker — sticky top bar
-  // ══════════════════════════════════════════════════════════════════════════
-  const JourneyBar = () => {
-    const steps = [
-      { label: 'Under Review',    done: ['Amend Payroll','Recalculate Required','Approved'].includes(status) || rerunDone, active: status === 'Under Review' && !rerunDone },
-      { label: 'Amend Payroll',   done: ['Recalculate Required','Approved'].includes(status) || rerunDone, active: isAmendMode },
-      { label: 'Save amendments', done: isRerunRequired || rerunDone || isApproved, active: isAmendMode && amendments.length > 0 },
-      { label: 'Re-calculate',    done: rerunDone || isApproved, active: isRerunRequired },
-      { label: 'Approve',         done: isApproved, active: rerunDone && !isApproved },
-    ];
-    const guidance = status === 'Under Review' && !rerunDone ? 'Click "Amend payroll" to unlock amendments'
-      : isAmendMode && amendments.length === 0 ? 'Click ✏ on any employee row to add amendments'
-      : isAmendMode ? 'Amendments added — save them, then re-calculate'
-      : isRerunRequired ? `${amendments.length} amendment${amendments.length !== 1 ? 's' : ''} saved — re-calculate when ready`
-      : rerunDone && !isApproved ? 'Re-calculate complete — review updated figures then approve'
-      : isApproved ? '✓ Payroll approved and locked' : '';
-    return (
-      <div style={{ background: '#fff', borderBottom: `1px solid ${S4.border}`, padding: '10px 28px', position: 'sticky', top: 0, zIndex: 10 }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 0, justifyContent: 'space-between', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            {steps.map((s, i, arr) => (
-              <React.Fragment key={s.label}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600,
-                  background: s.done ? S4.greenLight : s.active ? S4.darkTeal : '#f1f5f9',
-                  color:      s.done ? S4.green     : s.active ? '#fff'       : '#94a3b8' }}>
-                  {s.done && <span>✓</span>}{s.label}
-                </div>
-                {i < arr.length - 1 && <span style={{ color: '#cbd5e1', fontSize: 13, margin: '0 2px' }}>→</span>}
-              </React.Fragment>
-            ))}
-          </div>
-          <div style={{ fontSize: 12, color: S4.subtext, fontStyle: 'italic', marginTop: 2 }}>{guidance}</div>
-        </div>
-      </div>
-    );
-  };
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // FIX 1: Amend confirmation modal
-  // ══════════════════════════════════════════════════════════════════════════
-  const AmendConfirmModal = () => (
-    <ModalShell title="Start amendment process?" subtitle="Please read before continuing" onClose={() => setShowAmendConfirm(false)}
-      footer={
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <TealBtn outline onClick={() => setShowAmendConfirm(false)}>Cancel — keep as Under Review</TealBtn>
-          <TealBtn onClick={() => { setStatus('Amend Payroll'); setShowAmendConfirm(false); }}>Yes, enter Amend mode</TealBtn>
-        </div>
-      }>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <InfoBanner color="amber" text="Entering amend mode will require a re-calculate before this payroll can be approved. This cannot be skipped." />
-        <div style={{ background: S4.cardBg, border: `1px solid ${S4.border}`, borderRadius: 10, padding: 16 }}>
-          <div style={{ fontWeight: 700, color: S4.text, fontSize: 13, marginBottom: 10 }}>What happens next:</div>
-          {[
-            'Amendments are unlocked — you can add, edit or remove pay element changes',
-            'Once saved, a Re-calculate is required before Approve becomes available',
-            'You can add more amendments after saving, up until you Re-calculate',
-            'Re-calculating will update all summary figures for your review',
-          ].map((s, i) => (
-            <div key={i} style={{ display: 'flex', gap: 10, fontSize: 13, color: S4.subtext, marginBottom: 8 }}>
-              <span style={{ color: S4.midTeal, flexShrink: 0, fontWeight: 700 }}>{i + 1}.</span><span>{s}</span>
-            </div>
-          ))}
-        </div>
-        <div style={{ fontSize: 12, color: S4.subtext }}>Payroll period: <strong>23/03/2025 – 30/03/2025</strong> · 5 employees · Total gross: <strong>£13,800.00</strong></div>
-      </div>
-    </ModalShell>
-  );
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // FIX 10: Approve confirmation modal
-  // ══════════════════════════════════════════════════════════════════════════
-  const ApproveConfirmModal = () => (
-    <ModalShell title="Approve this payroll?" subtitle="This action cannot be undone" onClose={() => setShowApproveConfirm(false)}
-      footer={
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <TealBtn outline onClick={() => setShowApproveConfirm(false)}>Cancel — go back</TealBtn>
-          <TealBtn onClick={() => { setStatus('Approved'); setShowApproveConfirm(false); }}>Yes, approve payroll</TealBtn>
-        </div>
-      }>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <InfoBanner color="amber" text="Approving will finalise this payroll run. Payments will be processed and this payroll will be locked for editing." />
-        <div style={{ background: S4.cardBg, border: `1px solid ${S4.border}`, borderRadius: 10, padding: 16 }}>
-          <div style={{ fontWeight: 700, color: S4.text, fontSize: 13, marginBottom: 12 }}>Payroll summary you are approving:</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {CARDS.map((c, i) => (
-              <div key={i} style={{ background: '#fff', border: `1px solid ${S4.border}`, borderRadius: 8, padding: '10px 14px' }}>
-                <div style={{ fontSize: 11, color: S4.subtext }}>{c.label}</div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: S4.text, marginTop: 3 }}>{rerunDone ? c.after : c.before}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div style={{ fontSize: 12, color: S4.subtext }}>Period: <strong>23/03/2025 – 30/03/2025</strong> · <strong>5 employees</strong></div>
-      </div>
-    </ModalShell>
-  );
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // FIX 7: Amendment history panel
-  // ══════════════════════════════════════════════════════════════════════════
-  const AmendHistoryModal = () => (
-    <ModalShell title="Amendment History" subtitle="All amendments applied in this payroll run" onClose={() => setShowAmendHistory(false)}>
-      {amendHistory.length === 0 ? (
-        <div style={{ textAlign: 'center', color: '#94a3b8', padding: 40, fontSize: 13 }}>No amendments recorded yet</div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {EMPLOYEES.map(emp => {
-            const rows = amendHistory.filter(a => a.empId === emp.id);
-            if (!rows.length) return null;
-            return (
-              <div key={emp.id} style={{ border: `1px solid ${S4.border}`, borderRadius: 10, overflow: 'hidden' }}>
-                <div style={{ padding: '8px 14px', background: S4.cardBg, borderBottom: `1px solid ${S4.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Avatar emp={emp} size={24} />
-                  <span style={{ fontWeight: 700, fontSize: 13, color: S4.text }}>{emp.name}</span>
-                  <span style={{ fontSize: 11, color: S4.subtext, marginLeft: 'auto' }}>{rows.length} amendment{rows.length > 1 ? 's' : ''}</span>
-                </div>
-                {rows.map((a, i) => (
-                  <div key={i} style={{ padding: '10px 14px', borderBottom: `1px solid ${S4.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff' }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: S4.text }}>{a.element}</div>
-                      {a.desc && <div style={{ fontSize: 11, color: S4.subtext, marginTop: 2 }}>{a.desc}</div>}
-                    </div>
-                    <div style={{ display: 'flex', align: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: S4.green }}>£{a.value}</span>
-                      <span style={{ background: S4.greenLight, color: S4.green, borderRadius: 999, padding: '1px 8px', fontSize: 10, fontWeight: 700 }}>Applied</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </ModalShell>
-  );
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // PAYROLL SUMMARY SCREEN
-  // ══════════════════════════════════════════════════════════════════════════
-  const PayrollScreen = () => (
-    <div style={{ minHeight: '100vh', background: S4.pageBg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-
-      {/* FIX 9: Sticky journey tracker at top */}
-      {JourneyBar()}
-
-      <div style={{ padding: '22px 28px', maxWidth: 1100, margin: '0 auto' }}>
-
-        {/* Page header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: S4.text, margin: 0 }}>MCSA Cafe Holdings Ltd. – Payroll Summary report</h1>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-
-            {/* Status pills */}
-            {status === 'Amend Payroll'      && <span style={{ background: S4.lightTeal,  color: S4.midTeal,  borderRadius: 999, padding: '4px 12px', fontSize: 12, fontWeight: 700 }}>Amend Payroll</span>}
-            {isRerunRequired                  && <span style={{ background: S4.amberLight, color: '#92400e',   borderRadius: 999, padding: '4px 12px', fontSize: 12, fontWeight: 700 }}>Recalculate Required</span>}
-            {rerunDone && !isRerunRequired && !isApproved && <span style={{ background: S4.greenLight, color: S4.green, borderRadius: 999, padding: '4px 12px', fontSize: 12, fontWeight: 700 }}>Recalculate Complete</span>}
-            {isApproved                       && <span style={{ background: S4.greenLight, color: S4.green,   borderRadius: 999, padding: '4px 12px', fontSize: 12, fontWeight: 700 }}>Approved</span>}
-
-            {/* FIX 7: Amendment history link */}
-            {amendHistory.length > 0 && (
-              <button onClick={() => setShowAmendHistory(true)} style={{ fontSize: 12, color: S4.midTeal, background: 'none', border: `1px solid ${S4.border}`, borderRadius: 6, padding: '5px 12px', cursor: 'pointer' }}>
-                📋 Amendment history ({amendHistory.length})
-              </button>
-            )}
-
-            {/* FIX 1: "Amend payroll" now opens confirmation modal */}
-            {!isAmendMode && !isRerunRequired && !rerunDone && !isApproved && (
-              <TealBtn outline onClick={() => setShowAmendConfirm(true)}>✏ Amend payroll</TealBtn>
-            )}
-
-            {/* FIX 3: Exit amend mode (only if no amendments saved yet) */}
-            {isAmendMode && amendments.length === 0 && (
-              <TealBtn outline danger onClick={() => setStatus('Under Review')}>✕ Cancel amend</TealBtn>
-            )}
-
-            {/* Actions button — stays through amend + recalculate required */}
-            {(isAmendMode || isRerunRequired) && !rerunDone && !isApproved && (
-              <TealBtn outline onClick={() => setShowTypeModal(true)}>⊕ Actions</TealBtn>
-            )}
-
-            {/* Re-calculate / Approve */}
-            {(isAmendMode || isRerunRequired) ? (
-              <TealBtn disabled={amendments.length === 0} onClick={triggerRerun}>↻ Re-calculate</TealBtn>
-            ) : (
-              // FIX 10: Approve opens confirmation modal
-              <TealBtn disabled={isApproved} onClick={() => { if (!isApproved) setShowApproveConfirm(true); }}>
-                {isApproved ? '✓ Approved' : 'Approve payroll ✓'}
-              </TealBtn>
-            )}
-          </div>
-        </div>
-
-        {/* Banners */}
-        {/* FIX 2: Amend mode banner is now blue/teal, not red */}
-        {isAmendMode && (
-          <div style={{ background: '#eff6ff', border: `1px solid #bfdbfe`, borderRadius: 10, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <span style={{ color: '#2563eb', marginTop: 1, flexShrink: 0 }}>ℹ</span>
-              <div>
-                <div style={{ fontWeight: 700, color: '#1d4ed8', fontSize: 14 }}>Amendment mode — payroll is unlocked for editing</div>
-                <div style={{ fontSize: 13, color: '#1d4ed8', marginTop: 2 }}>Click ✏ on any employee row to add amendments. Re-calculate when done to update figures.</div>
-              </div>
-            </div>
-            {/* FIX 3: Cancel amend also available in banner if no amendments yet */}
-            {amendments.length === 0 && (
-              <button onClick={() => setStatus('Under Review')} style={{ fontSize: 12, color: '#2563eb', background: 'none', border: `1px solid #bfdbfe`, borderRadius: 6, padding: '4px 10px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                ✕ Cancel amend
-              </button>
-            )}
-          </div>
-        )}
-        {isRerunRequired && (
-          <div style={{ background: S4.amberLight, border: `1px solid ${S4.amberBorder}`, borderRadius: 10, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <span style={{ color: S4.amber, flexShrink: 0 }}>⚠</span>
-              <div>
-                <div style={{ fontWeight: 700, color: '#92400e', fontSize: 14 }}>Re-calculate required before approval</div>
-                <div style={{ fontSize: 13, color: '#92400e', marginTop: 2 }}>
-                  {amendments.length === 0
-                    ? 'All amendments have been removed. Add new amendments or re-calculate to continue.'
-                    : `${amendments.length} amendment${amendments.length !== 1 ? 's' : ''} across ${amendedCount} employee${amendedCount !== 1 ? 's' : ''}. You can still add more amendments before re-calculating.`}
-                </div>
-              </div>
-            </div>
-            <TealBtn disabled={amendments.length === 0} onClick={triggerRerun}>↻ Re-calculate</TealBtn>
-          </div>
-        )}
-        {rerunDone && !isRerunRequired && !isApproved && (
-          <div style={{ background: S4.greenLight, border: `1px solid #6ee7b7`, borderRadius: 10, padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 10 }}>
-            <span style={{ color: S4.green, flexShrink: 0 }}>✓</span>
-            <div style={{ fontSize: 14, color: '#065f46', fontWeight: 500 }}>Re-calculate complete — updated figures shown below. Review and approve when ready.</div>
-          </div>
-        )}
-        {isApproved && (
-          <div style={{ background: S4.greenLight, border: `1px solid #6ee7b7`, borderRadius: 10, padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 10 }}>
-            <span style={{ color: S4.green, flexShrink: 0 }}>✓</span>
-            <div style={{ fontSize: 14, color: '#065f46', fontWeight: 500 }}>Payroll approved and locked. No further changes can be made.</div>
-          </div>
-        )}
-
-        {/* Summary cards — dynamic */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>
-          {dynCards.map((c, i) => (
-            <div key={i} style={{ background: rerunDone ? '#f0fdf4' : S4.cardBg, border: `1px solid ${rerunDone ? '#6ee7b7' : S4.border}`, borderRadius: 10, padding: '14px 18px', transition: 'background 0.3s' }}>
-              <div style={{ fontSize: 12, color: S4.subtext, marginBottom: 5 }}>{c.label}</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: S4.text }}>{fmtAmt(c.val)}</div>
-              {rerunDone && c.diff !== 0 && (
-                <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: c.diff > 0 ? S4.green : S4.red }}>{c.diff > 0 ? '+' : ''}{fmtAmt(c.diff)}</span>
-                  <span style={{ fontSize: 11, color: S4.subtext }}>was {fmtAmt(c.base)}</span>
-                </div>
-              )}
-              {!rerunDone && pendingTotal > 0 && (
-                <div style={{ marginTop: 6, fontSize: 11, color: '#92400e', fontStyle: 'italic' }}>
-                  pending +{fmtAmt(i === 0 ? pendingTotal * NET_RATIO : i === 1 ? pendingTotal : i === 2 ? pendingTotal * PENSION_RATIO : pendingTotal * HMRC_RATIO)}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Wireframe disclaimer */}
-        <div style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 4, padding: '1px 6px', fontStyle: 'normal', fontWeight: 600, fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.4 }}>Wireframe</span>
-          Gross reflects actual amendment values. Net Pay, Pension and HMRC are illustrative estimates — real figures depend on the payroll calculation engine.
-        </div>
-
-        {/* Pay period label */}
-        <div style={{ display: 'inline-block', background: S4.midTeal, color: '#fff', borderRadius: 6, padding: '4px 13px', fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
-          Pay period: 23/03/2025 – 30/03/2025
-        </div>
-
-        {/* Search + Download */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-          <div style={{ flex: 1, border: `1px solid ${S4.border}`, borderRadius: 8, padding: '8px 12px', background: '#fff', fontSize: 13, color: '#aab', display: 'flex', alignItems: 'center', gap: 8 }}>
-            🔍 Search using PAYE ref...
-          </div>
-          <button style={{ border: `1px solid ${S4.border}`, borderRadius: 8, padding: '8px 14px', background: '#fff', fontSize: 13, color: S4.subtext, cursor: 'pointer' }}>⬇ Download</button>
-        </div>
-
-        {/* Employee table */}
-        <div style={{ border: `1px solid ${S4.border}`, borderRadius: 10, overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 0.8fr 0.7fr 0.9fr 0.5fr 1fr 1.4fr 44px', background: S4.darkTeal, padding: '11px 16px', gap: 8, alignItems: 'center' }}>
-            {['Employee details ↕','Area ↕','Tax code','W1M1','Total hours','SL','Gross pay','Pay elements',''].map((h, i) => (
-              <div key={i} style={{ color: '#fff', fontSize: 12, fontWeight: 600, textAlign: i >= 5 ? 'right' : 'left' }}>{h}</div>
-            ))}
-          </div>
-
-          {EMPLOYEES.map((emp, idx) => {
-            const empAmends = amendments.filter(a => a.empId === emp.id);
-            const hasAmends = empAmends.length > 0;
-            const histAmends = amendHistory.filter(a => a.empId === emp.id);
-            return (
-              <div key={emp.id} style={{ borderBottom: idx < EMPLOYEES.length - 1 ? `1px solid ${S4.border}` : 'none', background: hasAmends && !rerunDone ? '#fffbeb' : idx % 2 === 0 ? '#fff' : '#fafcfd' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 0.8fr 0.7fr 0.9fr 0.5fr 1fr 1.4fr 44px', padding: '11px 16px', gap: 8, alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Avatar emp={emp} size={34} />
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: S4.text }}>{emp.name}</span>
-                        {hasAmends && !rerunDone && <span style={{ background: S4.amberLight, color: '#92400e', borderRadius: 999, padding: '1px 7px', fontSize: 10, fontWeight: 700 }}>{empAmends.length} amended</span>}
-                        {rerunDone && histAmends.length > 0 && <span style={{ background: S4.greenLight, color: S4.green, borderRadius: 999, padding: '1px 7px', fontSize: 10, fontWeight: 700 }}>updated</span>}
-                      </div>
-                      <div style={{ fontSize: 11, color: S4.subtext, marginTop: 1 }}>Payroll ID: {emp.id}</div>
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 13, color: S4.text }}>{emp.area}</div>
-                  <div style={{ fontSize: 13, color: S4.text }}>{emp.taxCode}</div>
-                  <div style={{ fontSize: 13, color: S4.text }}>{emp.w1m1}</div>
-                  <div style={{ fontSize: 13, color: S4.text }}>{emp.hours}</div>
-                  <div style={{ fontSize: 13, color: S4.text, textAlign: 'right' }}>{emp.sl}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: S4.text, textAlign: 'right' }}>{empDisplayGross(emp)}</div>
-                  <div style={{ fontSize: 12 }}>
-                    {rerunDone && histAmends.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                        {histAmends.map((a, i) => (
-                          <span key={i} style={{ background: S4.greenLight, color: S4.green, borderRadius: 999, padding: '1px 8px', fontSize: 10, fontWeight: 700, display: 'inline-block' }}>{a.element}</span>
-                        ))}
-                      </div>
-                    ) : hasAmends && !rerunDone ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                        {empAmends.map((a, i) => (
-                          <span key={i} style={{ background: S4.amberLight, color: '#92400e', borderRadius: 999, padding: '1px 8px', fontSize: 10, fontWeight: 700, display: 'inline-block' }}>{a.element}</span>
-                        ))}
-                      </div>
-                    ) : <span style={{ color: '#cbd5e1', fontSize: 12 }}>—</span>}
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <button onClick={() => { setRowEmp(emp); setShowRowModal(true); }} title="Amend or view employee"
-                      style={{ background: 'none', border: `1px solid ${S4.border}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', color: S4.subtext, fontSize: 13 }}>✏</button>
-                  </div>
-                </div>
-                {/* Inline amendment detail — FIX 6: show Remove button */}
-                {hasAmends && !rerunDone && (
-                  <div style={{ padding: '2px 16px 10px 72px', borderTop: `1px solid #fde68a` }}>
-                    {empAmends.map((a, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, marginTop: 5, flexWrap: 'wrap' }}>
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: S4.amber, flexShrink: 0 }}></span>
-                        <span style={{ fontWeight: 700, color: '#92400e' }}>{a.element}</span>
-                        <span style={{ color: '#b45309' }}>£{a.value}</span>
-                        {a.desc && <span style={{ color: '#d97706', fontStyle: 'italic' }}>{a.desc}</span>}
-                        <span style={{ marginLeft: 'auto', background: S4.amberLight, color: '#92400e', borderRadius: 999, padding: '1px 8px', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>Pending recalculate</span>
-                        {/* FIX 6: Remove after save */}
-                        <button onClick={() => removeAmendment(a.id)}
-                          style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: 11, padding: 0, flexShrink: 0 }}>Remove</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        <div style={{ textAlign: 'right', marginTop: 10 }}>
-          <button onClick={resetAll} style={{ fontSize: 11, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Reset wireframe</button>
-        </div>
+  <!-- Nav -->
+  <nav class="nav">
+    <div class="nav-brand">
+      <div class="nav-logo">S4</div>
+      <div>
+        <div class="nav-title">S4Pay</div>
+        <div class="nav-sub">Bureau Administration</div>
       </div>
     </div>
-  );
+    <div class="nav-badge">Wireframe Portal</div>
+  </nav>
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // STORY 1 — TYPE MODAL
-  // ══════════════════════════════════════════════════════════════════════════
-  const TypeModal = () => (
-    <ModalShell title="Select Amendment Type" subtitle="Choose how you want to make amendments" onClose={() => setShowTypeModal(false)}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {[
-          { bg: '#eff6ff', border: '#bfdbfe', iconBg: '#dbeafe', icon: '✏', iconColor: '#2563eb', label: 'Source Data Amendment', desc: 'Amend a pay element for a single employee — select pay element, enter value and optional description.', onClick: () => { setShowTypeModal(false); setShowSourcePopup(true); } },
-          { bg: '#f5f3ff', border: '#ddd6fe', iconBg: '#ede9fe', icon: '≡', iconColor: '#7c3aed', label: 'Bulk Amendment', desc: 'Select multiple employees and add individual amendments per employee. Review all before saving.', onClick: () => { setShowTypeModal(false); setShowBulkPopup(true); } },
-          { bg: '#f0fdf4', border: '#bbf7d0', iconBg: '#dcfce7', icon: '→', iconColor: '#16a34a', label: 'Rota (Hours) Amendment', desc: 'Navigate to S4 Rota to amend hours. You will leave this screen.', warn: '⚠ Unsaved changes will be lost', onClick: () => { setShowTypeModal(false); setShowRotaConfirm(true); } },
-        ].map(opt => (
-          <button key={opt.label} onClick={opt.onClick} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: 14, background: opt.bg, border: `2px solid ${opt.border}`, borderRadius: 10, cursor: 'pointer', textAlign: 'left' }}>
-            <div style={{ width: 38, height: 38, background: opt.iconBg, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: opt.iconColor, fontSize: 17, fontWeight: 700 }}>{opt.icon}</div>
-            <div>
-              <div style={{ fontWeight: 700, color: S4.text, fontSize: 14 }}>{opt.label}</div>
-              <div style={{ fontSize: 12, color: S4.subtext, marginTop: 3 }}>{opt.desc}</div>
-              {opt.warn && <div style={{ fontSize: 11, color: S4.red, marginTop: 4, fontWeight: 600 }}>{opt.warn}</div>}
-            </div>
-          </button>
-        ))}
-      </div>
-    </ModalShell>
-  );
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-eyebrow">Interactive Wireframes</div>
+    <h1>S4Pay Product Wireframes</h1>
+    <p>Explore interactive journey wireframes for the S4Pay bureau payroll platform. Select a journey below to begin.</p>
+  </div>
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // STORY 2 — SOURCE DATA POPUP
-  // ══════════════════════════════════════════════════════════════════════════
-  const SourcePopup = () => (
-    <ModalShell badge="Source Data" badgeColor={S4.midTeal} title="Add Amendment" subtitle="Amendments require a payroll re-calculate before approval"
-      onClose={() => { setShowSourcePopup(false); resetSrc(); }}
-      footer={<div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}><TealBtn outline onClick={() => { setShowSourcePopup(false); resetSrc(); }}>Cancel</TealBtn><TealBtn disabled={srcStaged.length === 0} onClick={saveSrc}>Save Amendments ({srcStaged.length})</TealBtn></div>}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div>
-          <FieldLabel>Employee *</FieldLabel>
-          <S4Select value={srcEmp} onChange={e => setSrcEmp(e.target.value)}>
-            <option value="">Select employee...</option>
-            {EMPLOYEES.map(e => <option key={e.id} value={e.id}>{e.name} (ID: {e.id})</option>)}
-          </S4Select>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div>
-            <FieldLabel>Pay Element *</FieldLabel>
-            <S4Select value={srcEl} onChange={e => setSrcEl(e.target.value)}>
-              <option value="">Select pay element...</option>
-              {PAY_ELEMENTS.map(p => <option key={p} value={p}>{p}</option>)}
-            </S4Select>
-          </div>
-          <div><FieldLabel>Value *</FieldLabel><S4Input prefix="£" value={srcVal} onChange={e => setSrcVal(e.target.value)} placeholder="0.00" /></div>
-        </div>
-        <div><FieldLabel>Description (optional)</FieldLabel><S4Input value={srcDesc} onChange={e => setSrcDesc(e.target.value)} placeholder="Add a note or identifier..." /></div>
-        <button onClick={addSrcStaged} disabled={!srcEmp || !srcEl || !srcVal}
-          style={{ width: '100%', padding: '9px', border: `2px dashed ${!srcEmp || !srcEl || !srcVal ? '#e2e8f0' : S4.border}`, borderRadius: 8, background: 'none', color: !srcEmp || !srcEl || !srcVal ? '#cbd5e1' : S4.subtext, fontSize: 13, fontWeight: 600, cursor: !srcEmp || !srcEl || !srcVal ? 'not-allowed' : 'pointer' }}>
-          + Add Amendment
-        </button>
-        {srcStaged.length > 0 && <StagedList items={srcStaged} onRemove={id => setSrcStaged(p => p.filter(a => a.id !== id))} />}
-        <InfoBanner color="blue" text="Saving stores amendments and locks approval until you re-calculate. You can add more amendments before re-calculating." />
-      </div>
-    </ModalShell>
-  );
+  <!-- Main -->
+  <main class="main">
+    <div class="section-label">Select a journey</div>
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // STORY 3 — BULK POPUP
-  // ══════════════════════════════════════════════════════════════════════════
-  const BulkPopup = () => (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,61,79,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16 }}>
-      <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 24px 64px rgba(0,0,0,0.22)', width: '100%', maxWidth: 820, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ background: S4.cardBg, borderBottom: `1px solid ${S4.border}`, borderRadius: '12px 12px 0 0', padding: '14px 20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexShrink: 0 }}>
-          <div>
-            <div style={{ background: '#ede9fe', color: '#7c3aed', borderRadius: 6, padding: '2px 8px', fontSize: 10, fontWeight: 700, marginBottom: 5, display: 'inline-block', textTransform: 'uppercase', letterSpacing: 0.5 }}>Bulk</div>
-            <div style={{ fontWeight: 700, color: S4.text, fontSize: 15 }}>Bulk Amendment</div>
-            {/* FIX 5 & 12: Clear instruction — tick to select, click to focus */}
-            <div style={{ fontSize: 12, color: S4.subtext, marginTop: 3 }}>
-              <strong>Tick</strong> employees to include them · <strong>Click a row</strong> to focus and fill in their amendment form
-            </div>
-          </div>
-          <button onClick={() => { setShowBulkPopup(false); resetBulk(); }} style={{ background: 'none', border: 'none', fontSize: 20, color: '#94a3b8', cursor: 'pointer', lineHeight: 1, marginLeft: 12 }}>✕</button>
-        </div>
+    <div class="cards">
 
-        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          {/* LEFT — employee list */}
-          <div style={{ width: 224, borderRight: `1px solid ${S4.border}`, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-            <div style={{ padding: '8px 14px', background: S4.cardBg, borderBottom: `1px solid ${S4.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: S4.subtext, textTransform: 'uppercase', letterSpacing: 1 }}>Employees</span>
-              {bulkIds.length > 0 && <span style={{ background: '#ede9fe', color: '#7c3aed', borderRadius: 999, padding: '1px 7px', fontSize: 10, fontWeight: 700 }}>{bulkIds.length} ticked</span>}
-            </div>
-            <div style={{ overflowY: 'auto', flex: 1 }}>
-              {EMPLOYEES.map(emp => {
-                const isSel = bulkIds.includes(emp.id);
-                const isAct = bulkActiveId === emp.id;
-                const cnt   = bulkStaged.filter(a => a.empId === emp.id).length;
-                return (
-                  // FIX 12: row click = focus only, checkbox = toggle selection
-                  <div key={emp.id} onClick={() => focusBulkRow(emp.id)}
-                    style={{ padding: '10px 12px', borderBottom: `1px solid ${S4.border}`, cursor: 'pointer', background: isAct ? '#f5f3ff' : '#fff', borderLeft: isAct ? `3px solid #7c3aed` : '3px solid transparent' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div onClick={e => toggleBulkCheck(e, emp.id)}
-                        style={{ width: 15, height: 15, borderRadius: 3, border: `2px solid ${isSel ? '#7c3aed' : '#cbd5e1'}`, background: isSel ? '#7c3aed' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer' }}>
-                        {isSel && <span style={{ color: '#fff', fontSize: 9, lineHeight: 1, fontWeight: 700 }}>✓</span>}
-                      </div>
-                      <Avatar emp={emp} size={26} />
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: isAct ? '#5b21b6' : S4.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{emp.name}</div>
-                        <div style={{ fontSize: 10, color: S4.subtext }}>ID: {emp.id}</div>
-                      </div>
-                    </div>
-                    {cnt > 0 && <div style={{ marginTop: 5, marginLeft: 23 }}><span style={{ background: '#ede9fe', color: '#7c3aed', borderRadius: 999, padding: '1px 7px', fontSize: 10, fontWeight: 700 }}>{cnt} amendment{cnt > 1 ? 's' : ''}</span></div>}
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ padding: '8px 14px', background: S4.cardBg, borderTop: `1px solid ${S4.border}`, fontSize: 11, color: S4.subtext }}>{bulkIds.length} of {EMPLOYEES.length} ticked</div>
-          </div>
-
-          {/* RIGHT */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            {bulkActiveId ? (
-              <>
-                {/* FIX 5: Panel heading reflects all ticked employees */}
-                <div style={{ padding: '10px 16px', background: bulkIds.includes(bulkActiveId) ? '#f5f3ff' : S4.cardBg, borderBottom: `1px solid ${bulkIds.includes(bulkActiveId) ? '#ddd6fe' : S4.border}`, flexShrink: 0 }}>
-                  <div style={{ fontWeight: 700, color: '#5b21b6', fontSize: 13 }}>
-                    {bulkIds.length > 1
-                      ? `Adding amendment for ${bulkIds.length} ticked employees`
-                      : bulkIds.includes(bulkActiveId)
-                        ? `Adding amendment for ${bulkActiveEmp?.name}`
-                        : `Viewing ${bulkActiveEmp?.name} — tick to include in amendment`}
-                  </div>
-                  {/* FIX 5: Show all ticked employee avatars */}
-                  {bulkIds.length > 1 && (
-                    <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                      {selectedEmps.map(e => (
-                        <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#ede9fe', borderRadius: 999, padding: '2px 8px 2px 4px' }}>
-                          <Avatar emp={e} size={18} />
-                          <span style={{ fontSize: 11, color: '#5b21b6', fontWeight: 600 }}>{e.name.split(' ')[0]}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {!bulkIds.includes(bulkActiveId) && (
-                    <div style={{ fontSize: 11, color: '#7c3aed', marginTop: 4 }}>
-                      <button onClick={e => { e.stopPropagation(); toggleBulkCheck(e, bulkActiveId); }}
-                        style={{ background: '#ede9fe', border: 'none', borderRadius: 6, padding: '3px 10px', fontSize: 11, color: '#7c3aed', cursor: 'pointer', fontWeight: 600 }}>
-                        + Tick to include in amendment
-                      </button>
-                    </div>
-                  )}
-                </div>
-                {bulkIds.includes(bulkActiveId) || bulkIds.length > 0 ? (
-                  <div style={{ padding: 16, borderBottom: `1px solid ${S4.border}`, display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                      <div><FieldLabel>Pay Element *</FieldLabel><S4Select value={bulkEl} onChange={e => setBulkEl(e.target.value)}><option value="">Select...</option>{PAY_ELEMENTS.map(p => <option key={p} value={p}>{p}</option>)}</S4Select></div>
-                      <div><FieldLabel>Value *</FieldLabel><S4Input prefix="£" value={bulkVal} onChange={e => setBulkVal(e.target.value)} placeholder="0.00" /></div>
-                    </div>
-                    <div><FieldLabel>Description (optional)</FieldLabel><S4Input value={bulkDesc} onChange={e => setBulkDesc(e.target.value)} placeholder="Add a note or identifier..." /></div>
-                    <button onClick={addBulkStaged} disabled={!bulkEl || !bulkVal || bulkIds.length === 0}
-                      style={{ padding: '8px', border: `2px dashed ${bulkEl && bulkVal && bulkIds.length > 0 ? '#7c3aed' : '#e2e8f0'}`, borderRadius: 8, background: bulkEl && bulkVal && bulkIds.length > 0 ? '#f5f3ff' : 'none', color: bulkEl && bulkVal && bulkIds.length > 0 ? '#7c3aed' : '#cbd5e1', fontSize: 13, fontWeight: 600, cursor: bulkEl && bulkVal && bulkIds.length > 0 ? 'pointer' : 'not-allowed' }}>
-                      {bulkIds.length === 0 ? '← Tick at least one employee first'
-                        : bulkIds.length > 1 ? `+ Add for all ${bulkIds.length} ticked employees`
-                        : `+ Add for ${bulkActiveEmp?.name.split(' ')[0]}`}
-                    </button>
-                  </div>
-                ) : null}
-              </>
-            ) : (
-              <div style={{ padding: 18, borderBottom: `1px solid ${S4.border}`, background: S4.cardBg, display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: 16 }}>≡</div>
-                <div style={{ fontSize: 13, color: S4.subtext }}>Click an employee row on the left to start adding amendments</div>
-              </div>
-            )}
-            <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
-              {bulkStaged.length > 0
-                ? <StagedList items={bulkStaged} onRemove={id => setBulkStaged(p => p.filter(a => a.id !== id))} groupByEmp />
-                : <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: 13, paddingTop: 40 }}>No amendments staged yet</div>}
-            </div>
+      <!-- Bureau Setup -->
+      <a class="card" href="bureau-setup.html">
+        <div class="card-header">
+          <div class="card-icon" style="background:#e6f4f6;">🏢</div>
+          <div class="card-meta">
+            <div class="card-badge" style="background:#e6f4f6; color:#1a6b7a;">Bureau Setup</div>
+            <div class="card-title">Organisation &amp; PAYE Setup</div>
+            <div class="card-desc">Onboard a new client organisation — configure PAYE scheme details, HMRC references, pay frequencies and generate pay schedules.</div>
           </div>
         </div>
+        <div class="card-steps">
+          <div class="step-row"><div class="step-num">1</div><div class="step-label">Pending Setup dashboard</div></div>
+          <div class="step-row"><div class="step-num">2</div><div class="step-label">Create PAYE scheme with HMRC references</div></div>
+          <div class="step-row"><div class="step-num">3</div><div class="step-label">Organisation dashboard &amp; settings</div></div>
+          <div class="step-row"><div class="step-num">4</div><div class="step-label">Create pay frequency &amp; payment method</div></div>
+          <div class="step-row"><div class="step-num">5</div><div class="step-label">Preview &amp; save pay schedule</div></div>
+        </div>
+        <div class="card-footer">Start Bureau Setup journey →</div>
+      </a>
 
-        <div style={{ borderTop: `1px solid ${S4.border}`, background: S4.cardBg, borderRadius: '0 0 12px 12px', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-          <InfoBanner color="blue" text="Saving locks approval until payroll is re-calculated. You can still add more amendments afterwards." />
-          <div style={{ display: 'flex', gap: 10, marginLeft: 16 }}>
-            <TealBtn outline onClick={() => { setShowBulkPopup(false); resetBulk(); }}>Cancel</TealBtn>
-            <TealBtn disabled={bulkStaged.length === 0} onClick={saveBulk}>Save All ({bulkStaged.length})</TealBtn>
+      <!-- Payroll Amendments -->
+      <a class="card" href="payroll-amendments-wireframe.html">
+        <div class="card-header">
+          <div class="card-icon" style="background:#fef3c7;">✏️</div>
+          <div class="card-meta">
+            <div class="card-badge" style="background:#fef3c7; color:#92400e;">Payroll Amendments</div>
+            <div class="card-title">Payroll Amendments &amp; Processing</div>
+            <div class="card-desc">Amend an in-progress payroll run — add source data, bulk or rota amendments, recalculate figures and approve the payroll.</div>
           </div>
         </div>
-      </div>
+        <div class="card-steps">
+          <div class="step-row"><div class="step-num">1</div><div class="step-label">Payroll summary — Under Review</div></div>
+          <div class="step-row"><div class="step-num">2</div><div class="step-label">Enter amend mode &amp; add amendments</div></div>
+          <div class="step-row"><div class="step-num">3</div><div class="step-label">Source data, bulk or rota amendment types</div></div>
+          <div class="step-row"><div class="step-num">4</div><div class="step-label">Re-calculate to apply changes</div></div>
+          <div class="step-row"><div class="step-num">5</div><div class="step-label">Review updated figures &amp; approve</div></div>
+        </div>
+        <div class="card-footer">Start Amendments journey →</div>
+      </a>
+
     </div>
-  );
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // STORY 4 — ROTA CONFIRM
-  // ══════════════════════════════════════════════════════════════════════════
-  const RotaConfirm = () => (
-    <ModalShell badge="Rota Hours" badgeColor="#16a34a" title="Navigate to S4 Rota?" onClose={() => setShowRotaConfirm(false)}
-      footer={<div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}><TealBtn outline onClick={() => setShowRotaConfirm(false)}>Cancel</TealBtn><TealBtn onClick={() => setShowRotaConfirm(false)}>Go to S4 Rota →</TealBtn></div>}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <InfoBanner color="amber" text="You will leave this payroll screen. Any unsaved changes will be lost. After amending hours in S4 Rota, return to this payroll and re-calculate to apply changes." />
-        <div style={{ background: S4.cardBg, border: `1px solid ${S4.border}`, borderRadius: 10, padding: 14 }}>
-          <div style={{ fontWeight: 700, color: S4.text, fontSize: 13, marginBottom: 10 }}>Steps after amending hours:</div>
-          {['Make your hours amendments in S4 Rota','Return to S4 Pay → Payroll Processing','Re-calculate to apply the updated hours'].map((s, i) => (
-            <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13, color: S4.subtext, marginBottom: 6 }}><span style={{ color: '#94a3b8', width: 16, flexShrink: 0 }}>{i + 1}.</span><span>{s}</span></div>
-          ))}
-        </div>
-        <InfoBanner color="blue" text="Note: Write-back from Rota must not conflict with existing rota records. Conflict handling rules apply — see Rota team documentation." />
-      </div>
-    </ModalShell>
-  );
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // ROW AMEND MODAL — FIX 4: show context note, all options always available
-  // ══════════════════════════════════════════════════════════════════════════
-  const RowModal = () => {
-    if (!rowEmp) return null;
-    const enterAmendAndOpen = (fn) => {
-      if (!isAmendMode && !isRerunRequired) setStatus('Amend Payroll');
-      fn();
-    };
-    return (
-      <ModalShell title={rowEmp.name} subtitle={`EMP-${rowEmp.id} · Select an action`} onClose={() => setShowRowModal(false)}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {/* FIX 4: Context note — not alarming, just informative */}
-          {!isAmendMode && !isRerunRequired && (
-            <InfoBanner color="blue" text="Selecting an amendment type below will automatically enter Amend mode for this payroll." />
-          )}
-          {[
-            { iconBg: '#dbeafe', icon: '✏', iconColor: '#2563eb', label: 'Source Data Amendment', desc: 'Amend a pay element for this employee — value and optional description.', onClick: () => enterAmendAndOpen(() => { setSrcEmp(rowEmp.id); setShowRowModal(false); setShowSourcePopup(true); }) },
-            { iconBg: '#ede9fe', icon: '≡', iconColor: '#7c3aed', label: 'Bulk Amendment', desc: 'Open the bulk panel with this employee pre-selected.', onClick: () => enterAmendAndOpen(() => { setBulkIds([rowEmp.id]); setBulkActiveId(rowEmp.id); setShowRowModal(false); setShowBulkPopup(true); }) },
-            { iconBg: '#dcfce7', icon: '→', iconColor: '#16a34a', label: 'Rota (Hours) Amendment', desc: 'Navigate to S4 Rota to amend hours for this employee.', warn: '⚠ You will leave this screen', onClick: () => enterAmendAndOpen(() => { setShowRowModal(false); setShowRotaConfirm(true); }) },
-          ].map(opt => (
-            <button key={opt.label} onClick={opt.onClick}
-              style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: 14, background: '#fff', border: `2px solid ${S4.border}`, borderRadius: 10, cursor: 'pointer', textAlign: 'left' }}>
-              <div style={{ width: 36, height: 36, background: opt.iconBg, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: opt.iconColor, fontSize: 16, fontWeight: 700 }}>{opt.icon}</div>
-              <div>
-                <div style={{ fontWeight: 700, color: S4.text, fontSize: 13 }}>{opt.label}</div>
-                <div style={{ fontSize: 12, color: S4.subtext, marginTop: 3 }}>{opt.desc}</div>
-                {opt.warn && <div style={{ fontSize: 11, color: S4.red, marginTop: 4, fontWeight: 600 }}>{opt.warn}</div>}
-              </div>
-            </button>
-          ))}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0' }}>
-            <div style={{ flex: 1, borderTop: `1px solid ${S4.border}` }}></div>
-            <span style={{ fontSize: 12, color: '#94a3b8' }}>or</span>
-            <div style={{ flex: 1, borderTop: `1px solid ${S4.border}` }}></div>
-          </div>
-          <button onClick={() => { setProfileEmp(rowEmp); setShowRowModal(false); setShowProfile(true); }}
-            style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: 14, background: '#fff', border: `2px solid ${S4.border}`, borderRadius: 10, cursor: 'pointer', textAlign: 'left' }}>
-            <div style={{ width: 36, height: 36, background: S4.cardBg, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16 }}>👤</div>
-            <div>
-              <div style={{ fontWeight: 700, color: S4.text, fontSize: 13 }}>Go to Employee Profile</div>
-              <div style={{ fontSize: 12, color: S4.subtext, marginTop: 3 }}>View payroll tab — add deductions and Attachment of Earnings Orders (AOEs).</div>
-            </div>
-          </button>
-        </div>
-      </ModalShell>
-    );
-  };
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // EMPLOYEE PROFILE MODAL
-  // ══════════════════════════════════════════════════════════════════════════
-  const ProfileModal = () => {
-    if (!profileEmp) return null;
-    const emp = profileEmp;
-    const dir = getDir(emp.id);
-
-    const handleDirCheckbox = () => {
-      if (dir.isDirector && dir.saved) {
-        setShowDirConfirm(true);
-      } else {
-        setDir(emp.id, { isDirector: !dir.isDirector, appointmentDate: '', niMethod: 'annual', saved: false });
-        setDirValidation(false);
-        setDirSaveSuccess(false);
-      }
-    };
-
-    const handleDirSave = () => {
-      if (dir.isDirector && !dir.appointmentDate) {
-        setDirValidation(true);
-        return;
-      }
-      setDirValidation(false);
-      setDir(emp.id, { saved: dir.isDirector });
-      setDirSaveSuccess(true);
-      setTimeout(() => setDirSaveSuccess(false), 3000);
-    };
-
-    const confirmDirRemove = () => {
-      setDir(emp.id, { isDirector: false, appointmentDate: '', niMethod: 'annual', saved: false });
-      setShowDirConfirm(false);
-    };
-
-    return (
-      <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,61,79,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 16, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-        <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 24px 64px rgba(0,0,0,0.28)', width: '100%', maxWidth: 900, maxHeight: '92vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-
-          {/* Toast */}
-          {dedToast && (
-            <div style={{ position: 'absolute', top: 16, right: 56, background: '#fff', border: '1px solid #6ee7b7', borderRadius: 10, padding: '10px 16px', boxShadow: '0 4px 20px rgba(0,0,0,0.12)', display: 'flex', gap: 10, zIndex: 10, minWidth: 270 }}>
-              <span style={{ color: S4.green }}>✓</span>
-              <div><div style={{ fontWeight: 700, fontSize: 13, color: S4.text }}>Deduction added</div><div style={{ fontSize: 11, color: S4.subtext, marginTop: 2 }}>{emp.name} — pending re-calculate to apply</div></div>
-            </div>
-          )}
-
-          {/* Dark teal header */}
-          <div style={{ background: S4.darkTeal, borderRadius: '12px 12px 0 0', padding: '16px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-              <div style={{ width: 52, height: 52, borderRadius: '50%', background: emp.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 18, flexShrink: 0 }}>{emp.initials}</div>
-              <div>
-                <div style={{ color: '#fff', fontWeight: 700, fontSize: 18, display: 'flex', alignItems: 'center', gap: 10 }}>
-                  {emp.name}
-                  {dir.saved && <span style={{ background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', borderRadius: 999, padding: '2px 10px', fontSize: 11, fontWeight: 700 }}>Company Director</span>}
-                </div>
-                <div style={{ color: '#94c5cf', fontSize: 12, marginTop: 2 }}>Known as: {emp.name.split(' ')[0]}</div>
-              </div>
-              <div style={{ marginLeft: 20 }}><div style={{ color: '#94c5cf', fontSize: 11 }}>Job role:</div><div style={{ color: '#fff', fontWeight: 600, fontSize: 13 }}>Senior Associate</div></div>
-              <div style={{ marginLeft: 16 }}><div style={{ color: '#94c5cf', fontSize: 11 }}>Home site:</div><div style={{ color: '#fff', fontWeight: 600, fontSize: 13 }}>{emp.area}</div></div>
-            </div>
-            <button onClick={() => { setShowProfile(false); setShowAddForm(false); }} style={{ background: 'none', border: 'none', color: '#94c5cf', fontSize: 22, cursor: 'pointer' }}>✕</button>
-          </div>
-
-          {/* Tabs */}
-          <div style={{ borderBottom: `1px solid ${S4.border}`, background: '#fff', padding: '0 20px', display: 'flex', flexShrink: 0 }}>
-            {['Summary','Employee info','HR records','Payroll','Documents','Audit'].map(tab => (
-              <div key={tab} style={{ padding: '11px 16px', fontSize: 13, cursor: 'pointer', color: tab === 'Payroll' ? S4.midTeal : S4.subtext, fontWeight: tab === 'Payroll' ? 700 : 400, borderBottom: tab === 'Payroll' ? `2.5px solid ${S4.midTeal}` : '2.5px solid transparent', marginBottom: -1 }}>
-                {tab}
-              </div>
-            ))}
-          </div>
-
-          {/* Body */}
-          <div style={{ overflowY: 'auto', flex: 1, padding: 18, background: S4.pageBg, display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-            {/* FIX 11: Context banner linking profile changes to current payroll */}
-            {isAmendMode || isRerunRequired ? (
-              <InfoBanner color="amber" text={`Active payroll period: 23/03/2025 – 30/03/2025. Any deductions added here will be flagged as pending and applied when this payroll is re-calculated.`} />
-            ) : (
-              <InfoBanner color="blue" text={`Changes made here will take effect in the next payroll run (period: 23/03/2025 – 30/03/2025) unless amend mode is active.`} />
-            )}
-
-            {/* Director save success toast */}
-            {dirSaveSuccess && (
-              <div style={{ background: S4.greenLight, border: '1px solid #6ee7b7', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#065f46', display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span>✓</span>
-                <span><strong>Saved.</strong> {emp.name} has been flagged as a company director. NI will be calculated using the {dir.niMethod === 'annual' ? 'annual earnings period' : 'alternative periodic'} method from the next payrun.</span>
-              </div>
-            )}
-
-            {/* Pay Info + YTD */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              <div style={{ background: '#fff', border: `1px solid ${dir.saved ? '#6ee7b7' : S4.border}`, borderRadius: 10, overflow: 'hidden', transition: 'border-color 0.2s' }}>
-                <div style={{ padding: '10px 16px', borderBottom: `1px solid ${S4.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: dir.saved ? '#f0fdf4' : '#fff' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontWeight: 700, fontSize: 13, color: S4.text }}>Pay Information</span>
-                    {dir.saved && <span style={{ background: S4.darkTeal, color: '#fff', borderRadius: 999, padding: '1px 8px', fontSize: 10, fontWeight: 700 }}>Company Director</span>}
-                  </div>
-                  <button style={{ background: 'none', border: 'none', color: S4.subtext, cursor: 'pointer', fontSize: 14 }}>✏</button>
-                </div>
-                <div style={{ padding: '14px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px 8px', borderBottom: `1px solid ${S4.border}` }}>
-                  {[['1257L','Tax Code'],['No','W1M1'],['No','Student Loan'],['M','NI Category'],['12345678901','HMRC submission ID'],['No','Post Graduate Loan']].map(([val,lbl],i) => (
-                    <div key={i}><div style={{ fontWeight: 600, fontSize: 14, color: S4.text }}>{val}</div><div style={{ fontSize: 11, color: S4.subtext, marginTop: 2 }}>{lbl}</div></div>
-                  ))}
-                </div>
-
-                {/* ── Director Settings section ── */}
-                <div style={{ padding: '16px 16px', background: dir.isDirector ? '#f8fffe' : '#fff' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: S4.subtext, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>Director Settings</div>
-
-                  {/* Checkbox */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: dir.isDirector ? 16 : 0 }}>
-                    <div onClick={handleDirCheckbox} style={{ width: 18, height: 18, borderRadius: 4, marginTop: 1, flexShrink: 0, border: `2px solid ${dir.isDirector ? S4.midTeal : '#cbd5e1'}`, background: dir.isDirector ? S4.midTeal : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                      {dir.isDirector && <span style={{ color: '#fff', fontSize: 11, fontWeight: 700, lineHeight: 1 }}>✓</span>}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: S4.text, cursor: 'pointer' }} onClick={handleDirCheckbox}>Company Director</div>
-                      <div style={{ fontSize: 12, color: S4.subtext, marginTop: 3 }}>Directors have NI calculated on an annual earnings period basis unless the alternative method is elected. See CWG2 Chapter 3.</div>
-                    </div>
-                  </div>
-
-                  {/* Dependent fields */}
-                  {dir.isDirector && (
-                    <div style={{ marginLeft: 30, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                        <div>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: S4.subtext, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.4 }}>Appointment Date *</div>
-                          <input value={dir.appointmentDate} onChange={e => { setDir(emp.id, { appointmentDate: e.target.value }); setDirValidation(false); }} placeholder="DD/MM/YYYY"
-                            style={{ width: '100%', border: `1px solid ${dirValidation && !dir.appointmentDate ? S4.red : S4.border}`, borderRadius: 8, padding: '8px 10px', fontSize: 13, background: '#fff', color: S4.text, outline: 'none', boxSizing: 'border-box' }} />
-                          {dirValidation && !dir.appointmentDate && (
-                            <div style={{ fontSize: 11, color: S4.red, marginTop: 4, display: 'flex', gap: 4 }}><span>⚠</span> Appointment Date is required when Company Director is ticked</div>
-                          )}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: S4.subtext, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.4 }}>NI Method *</div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 2 }}>
-                            {[
-                              { value: 'annual',      label: 'Annual earnings period',       desc: 'Default — HMRC standard for directors', badge: 'Default' },
-                              { value: 'alternative', label: 'Alternative method (periodic)', desc: 'Periodic calculation with year-end reconciliation' },
-                            ].map(opt => (
-                              <label key={opt.value} onClick={() => setDir(emp.id, { niMethod: opt.value })} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 10px', border: `1.5px solid ${dir.niMethod === opt.value ? S4.midTeal : S4.border}`, borderRadius: 8, cursor: 'pointer', background: dir.niMethod === opt.value ? S4.lightTeal : '#fff' }}>
-                                <div style={{ width: 15, height: 15, borderRadius: '50%', marginTop: 2, flexShrink: 0, border: `2px solid ${dir.niMethod === opt.value ? S4.midTeal : '#cbd5e1'}`, background: dir.niMethod === opt.value ? S4.midTeal : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                  {dir.niMethod === opt.value && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff' }} />}
-                                </div>
-                                <div>
-                                  <div style={{ fontSize: 12, fontWeight: 600, color: S4.text, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    {opt.label}
-                                    {opt.badge && <span style={{ background: S4.lightTeal, color: S4.midTeal, borderRadius: 999, padding: '1px 6px', fontSize: 9, fontWeight: 700 }}>{opt.badge}</span>}
-                                  </div>
-                                  <div style={{ fontSize: 11, color: S4.subtext, marginTop: 1 }}>{opt.desc}</div>
-                                </div>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      {dir.niMethod === 'alternative' && (
-                        <div style={{ background: S4.amberLight, border: `1px solid ${S4.amberBorder}`, borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#92400e', display: 'flex', gap: 8 }}>
-                          <span style={{ flexShrink: 0 }}>⚠</span>
-                          <span>The alternative method calculates NI on each pay period using standard thresholds. A reconciliation will be performed in the final period of the tax year to correct any difference against the annual earnings period liability.</span>
-                        </div>
-                      )}
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                        <button onClick={() => { setDir(emp.id, { isDirector: false, appointmentDate: '', niMethod: 'annual', saved: false }); setDirValidation(false); }} style={{ background: 'transparent', color: S4.darkTeal, border: `1.5px solid ${S4.darkTeal}`, borderRadius: 8, padding: '5px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Discard</button>
-                        <button onClick={handleDirSave} style={{ background: S4.darkTeal, color: '#fff', border: `1.5px solid ${S4.darkTeal}`, borderRadius: 8, padding: '5px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Save director settings</button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div style={{ background: '#fff', border: `1px solid ${S4.border}`, borderRadius: 10, overflow: 'hidden' }}>
-                <div style={{ padding: '10px 16px', borderBottom: `1px solid ${S4.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 700, fontSize: 13, color: S4.text }}>Year to Dates</span>
-                  <button style={{ fontSize: 12, color: S4.midTeal, background: 'none', border: 'none', cursor: 'pointer' }}>View more →</button>
-                </div>
-                <div style={{ padding: '14px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 8px' }}>
-                  {[['Gross Earnings','£22,500'],['Gross Earning for NI','£9,568.80'],['Gross Earnings for Tax','£6,021.50'],['Tax Paid','£7,800.43']].map(([lbl,val],i) => (
-                    <div key={i}><div style={{ fontSize: 11, color: S4.midTeal }}>{lbl}</div><div style={{ fontWeight: 700, fontSize: 16, color: S4.text, marginTop: 3 }}>{val}</div></div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Additions and Deductions */}
-            <div style={{ background: '#fff', border: `1px solid ${S4.border}`, borderRadius: 10, overflow: 'hidden' }}>
-              <div style={{ padding: '12px 16px', borderBottom: `1px solid ${S4.border}` }}>
-                <span style={{ fontWeight: 700, fontSize: 14, color: S4.text }}>Additions and Deductions</span>
-              </div>
-              <div style={{ padding: '10px 16px', borderBottom: `1px solid ${S4.border}`, display: 'flex', gap: 10, alignItems: 'center' }}>
-                <div style={{ flex: 1, border: `1px solid ${S4.border}`, borderRadius: 8, padding: '8px 12px', background: S4.cardBg, fontSize: 13, color: '#aab', display: 'flex', alignItems: 'center', gap: 8 }}>🔍 Search for a Pay Element...</div>
-                <button onClick={() => setShowAddForm(v => !v)} style={{ background: S4.darkTeal, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>+ Add</button>
-              </div>
-              {showAddForm && (
-                <div style={{ padding: 16, background: '#f0f9ff', borderBottom: `1px solid #bae6fd` }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: S4.subtext, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>New Entry</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                    <div><FieldLabel>Type *</FieldLabel><S4Select value={dedType} onChange={e => setDedType(e.target.value)}>{['Deduction','Addition','AOE – Attachment of Earnings','AOE – Council Tax','AOE – Child Support'].map(t => <option key={t} value={t}>{t}</option>)}</S4Select></div>
-                    <div><FieldLabel>Pay Element *</FieldLabel><S4Select value={dedEl} onChange={e => setDedEl(e.target.value)}><option value="">Select pay element...</option>{PAY_ELEMENTS.map(p => <option key={p} value={p}>{p}</option>)}</S4Select></div>
-                    <div><FieldLabel>Start Date *</FieldLabel><S4Input value={dedStart} onChange={e => setDedStart(e.target.value)} placeholder="DD/MM/YYYY" /></div>
-                    <div><FieldLabel>End Date (optional)</FieldLabel><S4Input value={dedEnd} onChange={e => setDedEnd(e.target.value)} placeholder="DD/MM/YYYY or leave blank" /></div>
-                    <div><FieldLabel>Amount *</FieldLabel><S4Input prefix="£" value={dedAmt} onChange={e => setDedAmt(e.target.value)} placeholder="0.00" /></div>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 12 }}>
-                    <TealBtn outline sm onClick={() => setShowAddForm(false)}>Cancel</TealBtn>
-                    <TealBtn sm disabled={!dedEl || !dedAmt || !dedStart} onClick={saveDed}>Save</TealBtn>
-                  </div>
-                </div>
-              )}
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: S4.darkTeal }}>
-                    {['Start date','End date','Pay Element details','Deduction','Actions'].map((h, i) => (
-                      <th key={i} style={{ padding: '10px 16px', color: '#fff', fontWeight: 600, textAlign: i === 3 ? 'right' : 'left', fontSize: 12 }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {dedRows.map((row, i) => (
-                    <tr key={row.id} style={{ borderBottom: `1px solid ${S4.border}`, background: row.pending ? '#fffbeb' : i % 2 === 0 ? '#fff' : '#fafcfd' }}>
-                      <td style={{ padding: '10px 16px', color: S4.text }}>{row.start}</td>
-                      <td style={{ padding: '10px 16px', color: S4.text }}>{row.end}</td>
-                      <td style={{ padding: '10px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                          {row.type && row.type !== 'Deduction' && <span style={{ background: '#ede9fe', color: '#7c3aed', borderRadius: 4, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>{row.type}</span>}
-                          <span style={{ color: S4.text }}>{row.element}</span>
-                          {row.pending && <span style={{ background: S4.amberLight, color: '#92400e', borderRadius: 999, padding: '1px 8px', fontSize: 10, fontWeight: 700 }}>Pending re-calculate</span>}
-                        </div>
-                      </td>
-                      <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600, color: S4.text }}>{row.amount}</td>
-                      <td style={{ padding: '10px 16px' }}>
-                        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                          <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: S4.subtext, fontSize: 15 }}>✏</button>
-                          <button onClick={() => setDedRows(p => p.filter(d => d.id !== row.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f87171', fontSize: 15 }}>🗑</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {dedRows.length === 0 && <tr><td colSpan={5} style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>No additions or deductions recorded</td></tr>}
-                </tbody>
-              </table>
-              <div style={{ padding: '8px 16px', background: S4.cardBg, borderTop: `1px solid ${S4.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 12, color: S4.subtext }}>Showing 1–{dedRows.length} of {dedRows.length}</span>
-                <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-                  {['«','‹','1','2','3','›','»'].map((p, i) => (
-                    <button key={i} style={{ width: 24, height: 24, borderRadius: 4, border: `1px solid ${S4.border}`, background: p === '1' ? S4.midTeal : '#fff', color: p === '1' ? '#fff' : S4.subtext, fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{p}</button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ borderTop: `1px solid ${S4.border}`, background: S4.cardBg, borderRadius: '0 0 12px 12px', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-            <span style={{ fontSize: 12, color: dedRows.some(d => d.pending) ? '#92400e' : S4.subtext }}>
-              {dedRows.some(d => d.pending) ? '⚠ Pending entries will apply after payroll is re-calculated.' : ''}
-            </span>
-            <TealBtn outline sm onClick={() => { setShowProfile(false); setShowAddForm(false); }}>Close</TealBtn>
-          </div>
-        </div>
-
-        {/* Director remove confirmation modal */}
-        {showDirConfirm && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,61,79,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 400, padding: 16 }}>
-            <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 24px 64px rgba(0,0,0,0.22)', width: '100%', maxWidth: 460 }}>
-              <div style={{ background: S4.cardBg, borderBottom: `1px solid ${S4.border}`, borderRadius: '12px 12px 0 0', padding: '14px 20px' }}>
-                <div style={{ fontWeight: 700, color: S4.text, fontSize: 15 }}>Remove director flag?</div>
-                <div style={{ fontSize: 12, color: S4.subtext, marginTop: 3 }}>Please read before confirming</div>
-              </div>
-              <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ background: S4.amberLight, border: `1px solid ${S4.amberBorder}`, borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#92400e', display: 'flex', gap: 8 }}>
-                  <span style={{ flexShrink: 0 }}>⚠</span>
-                  <span>Removing the director flag will revert NI calculations to standard periodic rules from the next payrun. This cannot be undone automatically — any periods already calculated under director rules may need manual review.</span>
-                </div>
-                <div style={{ fontSize: 13, color: S4.text }}><strong>{emp.name}</strong> will no longer be treated as a company director. Their appointment date and NI method will be cleared.</div>
-              </div>
-              <div style={{ borderTop: `1px solid ${S4.border}`, background: S4.cardBg, borderRadius: '0 0 12px 12px', padding: '12px 20px', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                <TealBtn outline onClick={() => setShowDirConfirm(false)}>Cancel — keep director flag</TealBtn>
-                <TealBtn danger onClick={confirmDirRemove}>Yes, remove director flag</TealBtn>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // RENDER
-  // ══════════════════════════════════════════════════════════════════════════
-  return (
-    <div>
-      {PayrollScreen()}
-      {showAmendConfirm   && AmendConfirmModal()}
-      {showApproveConfirm && ApproveConfirmModal()}
-      {showAmendHistory   && AmendHistoryModal()}
-      {showTypeModal      && TypeModal()}
-      {showSourcePopup    && SourcePopup()}
-      {showBulkPopup      && BulkPopup()}
-      {showRotaConfirm    && RotaConfirm()}
-      {showRowModal       && RowModal()}
-      {showProfile        && ProfileModal()}
+    <div class="info-strip">
+      <span>ℹ</span>
+      <span>These are interactive wireframes built for design review and story validation. All data is simulated — no real payroll or HMRC data is used. To deploy, upload all three files (<strong>index.html</strong>, <strong>bureau-setup.html</strong>, <strong>payroll-amendments-wireframe.html</strong>) to the same GitHub Pages repository.</span>
     </div>
-  );
-};
+  </main>
 
+  <footer>S4Pay · Bureau Wireframe Portal · For internal design review only</footer>
 
-
-
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<PayrollAmendmentsWireframe />);
-  </script>
 </body>
 </html>
