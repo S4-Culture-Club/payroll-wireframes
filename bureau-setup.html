@@ -65,13 +65,27 @@ function calcDeadlines(payDate,method) {
   return { cutOffDate:fmt(co), queryDeadline:fmt(subtractWD(co,1)), bacsApproval:fmt(new Date(co)) };
 }
 function taxYearEnd(d) {
-  const y=d.getFullYear(), a=new Date(y,3,5);
-  return d<=a?a:new Date(y+1,3,5);
+  // UK tax year ends 5 April. If date is on or before 5 Apr of same year → end is that Apr 5.
+  // If after 5 Apr → end is 5 Apr of next year (e.g. 30 Apr 2026 → 5 Apr 2027).
+  const y=d.getFullYear();
+  const apr5ThisYear=new Date(y,3,5);
+  return d<=apr5ThisYear ? apr5ThisYear : new Date(y+1,3,5);
+}
+function addMonths(d, n) {
+  // Advance by n months, clamping to last day of month.
+  // Use direct Date constructor (not sequential setters) to avoid JS month-overflow
+  // e.g. Apr-30 + 10 months: setMonth(Feb) while date=30 overflows to Mar-2 before setDate clamps.
+  const targetMonth = d.getMonth() + n;
+  const targetYear  = d.getFullYear() + Math.floor(targetMonth / 12);
+  const normMonth   = ((targetMonth % 12) + 12) % 12;
+  const lastDay     = new Date(targetYear, normMonth + 1, 0).getDate();
+  return new Date(targetYear, normMonth, Math.min(d.getDate(), lastDay));
 }
 function generateSchedule(freq,firstPayDate,method) {
   if(!firstPayDate) return [];
-  const [dd,mm,yy]=firstPayDate.split('/').map(Number);
-  if(!dd||!mm||!yy) return [];
+  const parts=firstPayDate.split('/').map(Number);
+  const [dd,mm,yy]=[parts[0],parts[1],parts[2]];
+  if(!dd||!mm||!yy||yy<2000) return [];
   const base=new Date(yy,mm-1,dd), yearEnd=taxYearEnd(base), pm=method||'BACS';
   const freqDays={'Weekly':7,'Fortnightly':14,'Four-Weekly':28};
   const rows=[]; let period=0, payDate=new Date(base);
@@ -86,11 +100,9 @@ function generateSchedule(freq,firstPayDate,method) {
     }
     const dl=calcDeadlines(payDate,pm);
     rows.push({period,startDate:fmt(pStart),endDate:fmt(pEnd),payDate:fmt(payDate),...dl});
-    const next=new Date(payDate);
-    if(freq==='Monthly')next.setMonth(next.getMonth()+1);
-    else if(freq==='Quarterly')next.setMonth(next.getMonth()+3);
-    else next.setDate(next.getDate()+(freqDays[freq]||7));
-    payDate=next;
+    if(freq==='Monthly')    payDate=addMonths(base,period);
+    else if(freq==='Quarterly') payDate=addMonths(base,period*3);
+    else { payDate=new Date(payDate); payDate.setDate(payDate.getDate()+(freqDays[freq]||7)); }
   }
   return rows;
 }
@@ -206,7 +218,7 @@ const YesNo = ({label,desc,value,onChange}) => (
 function JourneyBar({step}) {
   const steps = [
     {id:1,label:'Pending Setup'},{id:2,label:'PAYE Scheme'},{id:3,label:'Organisation'},
-    {id:4,label:'Pay Frequency'},{id:5,label:'Schedule Preview'},{id:6,label:'Dashboard'},
+    {id:4,label:'YTD Upload'},{id:5,label:'Pay Frequency'},{id:6,label:'Schedule Preview'},{id:7,label:'Dashboard'},
   ];
   return (
     <div style={{background:S4.navy,padding:'10px 28px',position:'sticky',top:0,zIndex:100}}>
@@ -582,9 +594,8 @@ function EditFreqModal({freq,onClose,onSave}) {
 // ── Screen 5: Schedule Preview ────────────────────────────────────────────────
 function SchedulePreview({org,freqForm,onBack,onConfirm}) {
   const pm=freqForm.paymentMethod||'BACS';
-  const base=generateSchedule(freqForm.frequency,freqForm.firstPayDate||'28/03/2025',pm);
-  const fallback=generateSchedule('Monthly','28/03/2025',pm);
-  const [schedule,setSchedule]=useState(base.length?base:fallback);
+  const base=generateSchedule(freqForm.frequency,freqForm.firstPayDate,pm);
+  const [schedule,setSchedule]=useState(base);
   const [editingIdx,setEditingIdx]=useState(null);
   const [calVal,setCalVal]=useState('');
 
@@ -610,14 +621,14 @@ function SchedulePreview({org,freqForm,onBack,onConfirm}) {
         </div>
         <div style={{display:'flex',gap:10}}>
           <Btn outline onClick={onBack}>← Edit frequency</Btn>
-          <Btn onClick={onConfirm}>Generate &amp; Save Schedule ✓</Btn>
+          <Btn onClick={()=>onConfirm(schedule)}>Generate &amp; Save Schedule ✓</Btn>
         </div>
       </div>
 
       <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:10,marginBottom:14}}>
         {[
           ['Frequency',freqForm.frequency||'–'],
-          ['First Pay Date',freqForm.firstPayDate||'28/03/2025'],
+          ['First Pay Date',freqForm.firstPayDate||'—'],
           ['Payment Method',pm],
           ['Pay Types',`${freqForm.payTypes?.length||0} selected`],
           ['Periods generated',`${periods} (to ${taxYrEnd})`],
@@ -686,10 +697,175 @@ function SchedulePreview({org,freqForm,onBack,onConfirm}) {
         ))}
       </div>
       <div style={{marginTop:10,display:'flex',justifyContent:'flex-end'}}>
-        <Btn onClick={onConfirm}>Generate &amp; Save Schedule ✓</Btn>
+        <Btn onClick={()=>onConfirm(schedule)}>Generate &amp; Save Schedule ✓</Btn>
       </div>
     </div>
   );
+}
+
+// ── View/Edit Schedule Modal (SPR-1135) ───────────────────────────────────────
+// Shown from the dashboard "View schedule" button on an existing frequency card.
+// Past periods are read-only; future periods allow pay date edits.
+// Deadlines are recalculated on each edit. Changes save back to the freq card.
+function ViewScheduleModal({freq, onClose, onSave}) {
+  const TODAY = new Date();
+  TODAY.setHours(0,0,0,0);
+  const pm = freq.method || 'BACS';
+
+  const parseDateStr = s => { const [d,m,y]=s.split('/').map(Number); return new Date(y,m-1,d); };
+  const isPast = dateStr => parseDateStr(dateStr) < TODAY;
+  const isToday = dateStr => { const d=parseDateStr(dateStr); return d.getTime()===TODAY.getTime(); };
+
+  const [schedule, setSchedule] = useState(
+    (freq.schedule && freq.schedule.length > 0) ? freq.schedule : []
+  );
+  const [editingIdx, setEditingIdx]   = useState(null);
+  const [calVal, setCalVal]           = useState('');
+  const [changedRows, setChangedRows] = useState(new Set());
+  const [saved, setSaved]             = useState(false);
+
+  const applyEdit = idx => {
+    if (!calVal) { setEditingIdx(null); return; }
+    const newPD = fromISO(calVal);
+    const dl = calcDeadlines(newPD, pm);
+    setSchedule(s => s.map((r, i) => i === idx
+      ? { ...r, payDate: fmt(newPD), ...dl }
+      : r
+    ));
+    setChangedRows(prev => new Set([...prev, idx]));
+    setEditingIdx(null);
+  };
+
+  const handleSave = () => {
+    // First upcoming (future) period → update the card headline dates
+    const firstFuture = schedule.find(r => !isPast(r.payDate));
+    onSave(schedule, firstFuture);
+    setSaved(true);
+    setChangedRows(new Set());
+    setTimeout(()=>setSaved(false), 2500);
+  };
+
+  const hasChanges = changedRows.size > 0;
+  const futureCount = schedule.filter(r => !isPast(r.payDate)).length;
+
+  return ModalShell({
+    badge:'SPR-1135', badgeColor:S4.navy,
+    title:`Pay Schedule — ${freq.name}`,
+    subtitle:`${freq.freq} · ${pm} · ${schedule.length} periods total · ${futureCount} upcoming`,
+    onClose, maxWidth:920,
+    footer:(
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+        <div style={{display:'flex',alignItems:'center',gap:10,fontSize:12,color:S4.subtext}}>
+          <span style={{background:S4.greenLight,color:S4.green,borderRadius:999,padding:'2px 10px',fontSize:11,fontWeight:700}}>Bureau Admin</span>
+          <span>Future pay dates are editable. Past periods are locked.</span>
+          {saved && <span style={{color:S4.green,fontWeight:700}}>✓ Saved — card updated</span>}
+        </div>
+        <div style={{display:'flex',gap:10}}>
+          <Btn outline onClick={onClose}>Close</Btn>
+          {hasChanges && <Btn onClick={handleSave}>Save Schedule Changes →</Btn>}
+        </div>
+      </div>
+    ),
+    children:(
+      <div style={{display:'flex',flexDirection:'column',gap:12}}>
+
+        {/* Summary chips */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10}}>
+          {[
+            ['Frequency', freq.freq||'—'],
+            ['Payment Method', pm],
+            ['Periods locked', schedule.filter(r=>isPast(r.payDate)).length],
+            ['Periods upcoming', futureCount],
+          ].map(([lbl,val])=>(
+            <div key={lbl} style={{background:S4.cardBg,border:`1px solid ${S4.border}`,borderRadius:8,padding:'8px 12px'}}>
+              <div style={{fontSize:10,color:S4.subtext,fontWeight:700,textTransform:'uppercase',letterSpacing:0.4}}>{lbl}</div>
+              <div style={{fontSize:13,fontWeight:700,color:S4.text,marginTop:2}}>{val}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Role banner */}
+        <Banner type="info">
+          <strong>Editing rules:</strong> Only future pay dates can be changed (Super Admin and Bureau Admin only). Past periods and their payroll data are preserved. Changing a pay date recalculates cut-off, query and BACS approval deadlines for that period, accounting for weekends and UK bank holidays.
+        </Banner>
+
+        {schedule.length === 0 ? (
+          <div style={{textAlign:'center',padding:'40px 0',color:S4.subtext,fontSize:13}}>
+            No schedule saved for this frequency. Go back to re-generate.
+          </div>
+        ) : (
+          <div style={{border:`1px solid ${S4.border}`,borderRadius:10,overflow:'hidden',overflowX:'auto'}}>
+            {/* Table header */}
+            <div style={{display:'grid',gridTemplateColumns:'40px 90px 90px 105px 110px 115px 1fr 46px',background:S4.navy,padding:'9px 14px',gap:8,minWidth:740}}>
+              {['P#','Period Start','Period End','Cut-off','Query Deadline','BACS Approval','Pay Date',''].map((h,i)=>(
+                <div key={i} style={{color:'#fff',fontSize:10,fontWeight:700,lineHeight:1.3}}>{h}</div>
+              ))}
+            </div>
+
+            {schedule.map((row,idx)=>{
+              const past    = isPast(row.payDate);
+              const today   = isToday(row.payDate);
+              const changed = changedRows.has(idx);
+              const rowBg   = changed ? '#f0fdf4'
+                            : today   ? S4.amberLight
+                            : past    ? '#f8fafc'
+                            : idx%2===0 ? '#fff' : '#fafcfd';
+              const textCol = past ? '#94a3b8' : S4.text;
+
+              return (
+                <div key={idx} style={{display:'grid',gridTemplateColumns:'40px 90px 90px 105px 110px 115px 1fr 46px',padding:'8px 14px',gap:8,alignItems:'center',
+                  borderBottom:idx<schedule.length-1?`1px solid ${S4.border}`:'none',
+                  background:rowBg, opacity:past?0.75:1}}>
+
+                  <div style={{fontSize:11,fontWeight:700,color:past?'#cbd5e1':S4.subtext}}>
+                    P{row.period}
+                    {today&&<div style={{fontSize:9,color:'#d97706',fontWeight:700,marginTop:1}}>TODAY</div>}
+                  </div>
+                  <div style={{fontSize:11,color:textCol}}>{row.startDate}</div>
+                  <div style={{fontSize:11,color:textCol}}>{row.endDate}</div>
+                  <div style={{fontSize:11,color:past?'#cbd5e1':S4.red,fontWeight:600}}>{row.cutOffDate}</div>
+                  <div style={{fontSize:11,color:past?'#cbd5e1':'#d97706',fontWeight:600}}>{row.queryDeadline}</div>
+                  <div style={{fontSize:11,color:past?'#cbd5e1':S4.teal,fontWeight:600}}>{row.bacsApproval}</div>
+
+                  {/* Pay date cell */}
+                  <div>
+                    {editingIdx===idx ? (
+                      <div style={{display:'flex',alignItems:'center',gap:6}}>
+                        <input type="date" value={calVal} onChange={e=>setCalVal(e.target.value)}
+                          style={{border:`1.5px solid ${S4.teal}`,borderRadius:6,padding:'3px 6px',fontSize:11,outline:'none',background:'#fff'}} />
+                        <button onClick={()=>applyEdit(idx)}
+                          style={{background:S4.teal,color:'#fff',border:'none',borderRadius:4,padding:'4px 10px',cursor:'pointer',fontSize:11,fontWeight:700}}>✓</button>
+                        <button onClick={()=>setEditingIdx(null)}
+                          style={{background:'none',border:`1px solid ${S4.border}`,borderRadius:4,padding:'4px 8px',cursor:'pointer',fontSize:11,color:S4.subtext}}>✕</button>
+                      </div>
+                    ) : (
+                      <span style={{fontSize:12,fontWeight:700,color:past?'#94a3b8':S4.text}}>
+                        {row.payDate}
+                        {changed && <span style={{marginLeft:6,fontSize:9,background:S4.greenLight,color:S4.green,borderRadius:999,padding:'1px 6px',fontWeight:700}}>EDITED</span>}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Action cell */}
+                  <div style={{display:'flex',justifyContent:'center'}}>
+                    {past ? (
+                      <span title="Past period — locked" style={{fontSize:14,color:'#cbd5e1',cursor:'default'}}>🔒</span>
+                    ) : editingIdx!==idx ? (
+                      <button onClick={()=>{setEditingIdx(idx);const[d,m,y]=row.payDate.split('/');setCalVal(`${y}-${m}-${d}`);}}
+                        title="Edit pay date"
+                        style={{background:'none',border:`1px solid ${S4.border}`,borderRadius:6,padding:'4px 8px',cursor:'pointer',fontSize:11,color:S4.text,display:'flex',alignItems:'center',gap:3}}>
+                        ✏
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    ),
+  });
 }
 
 // ── Screen 6: Organisation Dashboard ─────────────────────────────────────────
@@ -812,9 +988,250 @@ function OrgDashboard({org,payeSchemes,frequencies,onAddFreq,onOrgSettings,onVie
 }
 
 // ── Screen 3: Org Settings (PAYE tab) ─────────────────────────────────────────
+// ── YTD: simulated employees with missing data ────────────────────────────────
+const MISSING_YTD_EMPS = [
+  { id:'e1', name:'Kevin Hart',     initials:'KH', color:'#0891b2',
+    fields:[ {key:'grossYTD',label:'Gross Earnings YTD',uploaded:null}, {key:'taxPaid',label:'Tax Paid YTD',uploaded:null}, {key:'niEmployee',label:'Employee NI YTD',uploaded:null} ] },
+  { id:'e2', name:'Sarah Williams', initials:'SW', color:'#7c3aed',
+    fields:[ {key:'grossYTD',label:'Gross Earnings YTD',uploaded:null}, {key:'niEmployee',label:'Employee NI YTD',uploaded:null} ] },
+  { id:'e3', name:'Tom Baker',      initials:'TB', color:'#d97706',
+    fields:[ {key:'taxPaid',label:'Tax Paid YTD',uploaded:null} ] },
+];
+
+// ── Manual YTD modal — edit missing fields for one employee ───────────────────
+function ManualYTDModal({emp,onClose,onSave}) {
+  const [vals,setVals] = useState(()=>{ const o={}; emp.fields.forEach(f=>{o[f.key]=''}); return o; });
+  const allFilled = emp.fields.every(f=>(vals[f.key]||'').trim()!=='');
+  return ModalShell({
+    title:`Update YTD Data — ${emp.name}`,
+    subtitle:'Only missing fields are editable. Uploaded data is read-only.',
+    onClose, maxWidth:480,
+    footer:<div style={{display:'flex',justifyContent:'flex-end',gap:10}}><Btn outline onClick={onClose}>Cancel</Btn><Btn disabled={!allFilled} onClick={()=>onSave(emp.id,vals)}>Save YTD data ✓</Btn></div>,
+    children:(
+      <div style={{display:'flex',flexDirection:'column',gap:12}}>
+        <Banner type="info">Only fields missing from the upload are editable here. Existing uploaded data is shown read-only and cannot be overwritten.</Banner>
+        {emp.fields.map(f=>(
+          <div key={f.key}>
+            <Lbl required={!f.uploaded}>{f.label}</Lbl>
+            {f.uploaded
+              ? <div style={{display:'flex',alignItems:'center',gap:8}}><Inp value={f.uploaded} readOnly/><span style={{fontSize:11,color:S4.green,fontWeight:700,whiteSpace:'nowrap'}}>Uploaded ✓</span></div>
+              : <Inp prefix="£" value={vals[f.key]} onChange={e=>setVals(v=>({...v,[f.key]:e.target.value}))} placeholder="0.00"/>}
+          </div>
+        ))}
+      </div>
+    ),
+  });
+}
+
+// ── YTD Upload modal (SPR-1187/88/89) ────────────────────────────────────────
+function YTDModal({org,payeSchemes,onClose,onDone}) {
+  const [step,       setStep]       = useState('select');
+  const [uploadType, setUploadType] = useState(null);
+  const [assocPAYE,  setAssocPAYE]  = useState('');
+  const [progress,   setProgress]   = useState(0);
+  const [fixes,      setFixes]      = useState({});
+  const [applied,    setApplied]    = useState({});
+  const [editingIdx, setEditingIdx] = useState(null);
+
+  const FPS_ERRORS = [
+    {row:12,employee:'Sarah Williams',field:'NI Number',  value:'AB123456Z',  message:'Invalid NI format — must be 2 letters, 6 digits, 1 letter (A–D)'},
+    {row:23,employee:'Kevin Hart',    field:'Tax Code',   value:'1500',       message:'Tax code incomplete — suffix letter required e.g. 1500L'},
+    {row:31,employee:'Emma Davis',    field:'Gross YTD',  value:'-500',       message:'Negative YTD gross is not valid for this field'},
+  ];
+  const XLSX_ERRORS = Array.from({length:12},(_,i)=>({
+    row:i+2, employee:`Employee ${i+1}`,
+    field:i%3===0?'NI Number':i%3===1?'Tax Code':'Gross YTD',
+    value:'INVALID', message:'Value could not be parsed — check formatting in the template',
+  }));
+
+  const errors      = uploadType==='fps' ? FPS_ERRORS : XLSX_ERRORS;
+  const tooManyErrs = errors.length > 10;
+  const allFixed    = !tooManyErrs && errors.every((_,i)=>applied[i]);
+  const canUpload   = uploadType && assocPAYE;
+
+  const startUpload = () => {
+    setStep('uploading'); setProgress(0);
+    const iv = setInterval(()=>setProgress(p=>{ if(p>=100){clearInterval(iv);setStep(errors.length===0?'success':'errors');return 100;} return p+8; }), 120);
+  };
+
+  const footerEl =
+    step==='select'   ? <div style={{display:'flex',justifyContent:'flex-end',gap:10}}><Btn outline onClick={onClose}>Cancel</Btn><Btn disabled={!canUpload} onClick={startUpload}>Upload →</Btn></div>
+  : step==='errors' && tooManyErrs ? (
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
+        <span style={{fontSize:11,color:S4.red,fontWeight:600}}>Too many errors — file must be corrected and re-uploaded</span>
+        <div style={{display:'flex',gap:10}}><Btn outline onClick={onClose}>Cancel</Btn><Btn onClick={()=>{setStep('select');setProgress(0);}}>Re-upload corrected file →</Btn></div>
+      </div>
+    )
+  : step==='errors' ? (
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
+        <span style={{fontSize:11,color:S4.subtext}}>{Object.keys(applied).length}/{errors.length} errors resolved · valid rows stored</span>
+        <div style={{display:'flex',gap:10}}><Btn ghost sm onClick={onDone}>Close — keep valid rows</Btn><Btn sm disabled={!allFixed} onClick={()=>setStep('success')}>Save all fixed rows →</Btn></div>
+      </div>
+    )
+  : step==='success' ? <div style={{display:'flex',justifyContent:'flex-end'}}><Btn onClick={onDone}>Done ✓</Btn></div>
+  : null;
+
+  return ModalShell({
+    badge:'SPR-1187/88/89', badgeColor:S4.navy,
+    title:'Upload Year-to-Date Data',
+    subtitle:`Importing existing payroll data for ${org.name}`,
+    onClose, maxWidth:700, footer:footerEl,
+    children:(
+      <div>
+        {/* ── SELECT ── */}
+        {step==='select' && (
+          <div style={{display:'flex',flexDirection:'column',gap:16}}>
+            <Banner type="info">YTD data can only be uploaded once a PAYE scheme has been created. Associate the upload with a PAYE scheme below.</Banner>
+            <div>
+              <Lbl required>Associate with PAYE Scheme</Lbl>
+              <Sel value={assocPAYE} onChange={e=>setAssocPAYE(e.target.value)}>
+                <option value="">Select PAYE scheme…</option>
+                {payeSchemes.map(p=><option key={p.id} value={p.id}>{p.payeRef} — {p.payeRefName||'PAYE scheme'}</option>)}
+              </Sel>
+              <div style={{fontSize:11,color:S4.subtext,marginTop:3}}>Uploaded YTD data will be linked to this PAYE scheme and stored in employee YTD tables</div>
+            </div>
+            <SecHead>Select Upload Method</SecHead>
+            {[
+              {id:'fps', icon:'📄',label:'FPS XML Import',   badge:'Recommended',badgeC:S4.green,
+               desc:'Upload a Full Payment Submission XML file exported from your previous payroll software. Automatically maps all employee YTD figures. Accepted format: .xml'},
+              {id:'xlsx',icon:'📊',label:'Spreadsheet (.xlsx)',badge:'SPR-1188', badgeC:S4.purple,
+               desc:"Download our XLSX template, populate it with employee YTD data, then upload. Suitable if you don't have FPS XML access. Accepted format: .xlsx"},
+            ].map(opt=>(
+              <button key={opt.id} onClick={()=>setUploadType(opt.id)}
+                style={{display:'flex',alignItems:'flex-start',gap:14,padding:16,textAlign:'left',cursor:'pointer',
+                  background:uploadType===opt.id?S4.tealLight:'#fff',
+                  border:`2px solid ${uploadType===opt.id?S4.teal:S4.border}`,borderRadius:10}}>
+                <div style={{width:40,height:40,background:uploadType===opt.id?S4.teal:S4.cardBg,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>{opt.icon}</div>
+                <div style={{flex:1}}>
+                  <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                    <span style={{fontWeight:700,color:S4.text,fontSize:14}}>{opt.label}</span>
+                    <span style={{background:opt.badgeC,color:'#fff',borderRadius:4,padding:'1px 7px',fontSize:10,fontWeight:700}}>{opt.badge}</span>
+                  </div>
+                  <div style={{fontSize:12,color:S4.subtext,marginTop:4}}>{opt.desc}</div>
+                  {opt.id==='xlsx'&&<button onClick={e=>e.stopPropagation()} style={{marginTop:6,fontSize:11,color:S4.teal,background:'none',border:'none',cursor:'pointer',padding:0,textDecoration:'underline'}}>⬇ Download blank template</button>}
+                </div>
+                {uploadType===opt.id&&<span style={{color:S4.teal,fontSize:18,flexShrink:0}}>✓</span>}
+              </button>
+            ))}
+            {uploadType&&(
+              <div>
+                <div style={{background:S4.cardBg,border:`2px dashed ${S4.tealBorder}`,borderRadius:10,padding:20,textAlign:'center',cursor:'pointer'}}>
+                  <div style={{fontSize:28,marginBottom:8}}>{uploadType==='fps'?'📄':'📊'}</div>
+                  <div style={{fontWeight:600,color:S4.text,fontSize:13}}>Click to choose file or drag and drop here</div>
+                  <div style={{fontSize:11,color:S4.subtext,marginTop:3}}>Accepts {uploadType==='fps'?'.xml (FPS format)':'.xlsx files'} only</div>
+                  <div style={{marginTop:10,background:'#fff',border:`1px solid ${S4.border}`,borderRadius:6,padding:'6px 16px',display:'inline-block',fontSize:12,color:S4.subtext}}>
+                    {uploadType==='fps'?'FPS_2024_25_Q3.xml':'YTD_Template_Filled.xlsx'} — ready
+                  </div>
+                </div>
+                <div style={{marginTop:10}}>
+                  <Banner type={uploadType==='fps'?'info':'amber'}>
+                    {uploadType==='fps'
+                      ?'FPS upload: if fewer than 10 errors are found, valid rows are stored immediately. 10 or more errors require a corrected re-upload.'
+                      :'XLSX upload: if fewer than 10 errors are found, valid rows are stored immediately. 10 or more errors require a corrected re-upload.'}
+                  </Banner>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── UPLOADING ── */}
+        {step==='uploading'&&(
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:20,padding:'30px 0'}}>
+            <div style={{fontSize:40,animation:'spin 1s linear infinite'}}>⟳</div>
+            <div style={{fontWeight:700,color:S4.text,fontSize:15}}>Processing {uploadType==='fps'?'FPS XML':'spreadsheet'}…</div>
+            <div style={{width:'100%',background:'#e2e8f0',borderRadius:999,height:8,overflow:'hidden'}}>
+              <div style={{width:`${progress}%`,height:'100%',background:S4.teal,borderRadius:999,transition:'width 0.1s'}}/>
+            </div>
+            <div style={{fontSize:13,color:S4.subtext}}>
+              {progress<30?'Parsing file…':progress<60?'Matching employee records…':progress<85?'Validating YTD figures…':'Finalising…'}
+            </div>
+          </div>
+        )}
+
+        {/* ── ERRORS ── */}
+        {step==='errors'&&(
+          <div style={{display:'flex',flexDirection:'column',gap:14}}>
+            {tooManyErrs
+              ?<Banner type="error">{errors.length} validation errors found — this exceeds the limit of 10. Please correct your {uploadType==='fps'?'FPS XML':'spreadsheet'} file and re-upload. No data has been stored.</Banner>
+              :<Banner type="amber">{errors.length} validation errors found (under 10). Valid rows have been stored. Fix the errors below to save the remaining records, or close to keep only the valid rows.</Banner>}
+            <div style={{border:`1px solid ${S4.border}`,borderRadius:10,overflow:'hidden'}}>
+              <div style={{padding:'8px 14px',background:S4.cardBg,borderBottom:`1px solid ${S4.border}`,display:'flex',gap:10,alignItems:'center'}}>
+                <span style={{fontWeight:700,fontSize:13,color:S4.text}}>Validation Errors</span>
+                <Pill color={tooManyErrs?'red':'amber'}>{tooManyErrs?`${errors.length} errors — re-upload required`:`${errors.filter((_,i)=>!applied[i]).length} remaining`}</Pill>
+              </div>
+              {errors.map((err,idx)=>(
+                <div key={idx} style={{borderBottom:idx<errors.length-1?`1px solid ${S4.border}`:'none'}}>
+                  <div style={{padding:12,display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10,flexWrap:'wrap',
+                    background:applied[idx]?'#f0fdf4':idx%2===0?'#fff':'#fafcfd'}}>
+                    <div style={{flex:1}}>
+                      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:4}}>
+                        <span style={{fontSize:11,background:S4.redLight,color:S4.red,borderRadius:4,padding:'1px 6px',fontWeight:700}}>Row {err.row}</span>
+                        <span style={{fontWeight:700,fontSize:13,color:S4.text}}>{err.employee}</span>
+                        <span style={{fontSize:11,color:S4.subtext}}>· {err.field}</span>
+                      </div>
+                      <div style={{fontSize:12,color:S4.red}}>{err.message}</div>
+                      {applied[idx]&&<div style={{fontSize:11,color:S4.green,marginTop:2}}>→ corrected: <strong>{applied[idx]}</strong></div>}
+                    </div>
+                    {!tooManyErrs&&(
+                      applied[idx]?<Pill color="green">✓ Fixed</Pill>
+                      :editingIdx===idx?(
+                        <div style={{display:'flex',gap:5,alignItems:'center'}}>
+                          <input value={fixes[idx]||''} onChange={e=>setFixes(f=>({...f,[idx]:e.target.value}))} placeholder="Corrected value"
+                            style={{border:`1.5px solid ${S4.teal}`,borderRadius:6,padding:'4px 8px',fontSize:12,outline:'none',width:130}}/>
+                          <button onClick={()=>{setApplied(a=>({...a,[idx]:fixes[idx]}));setEditingIdx(null);}}
+                            style={{background:S4.teal,color:'#fff',border:'none',borderRadius:5,padding:'4px 7px',cursor:'pointer',fontSize:11}}>✓</button>
+                          <button onClick={()=>setEditingIdx(null)} style={{background:'none',border:'none',cursor:'pointer',color:'#94a3b8',fontSize:12}}>✕</button>
+                        </div>
+                      ):<Btn sm onClick={()=>setEditingIdx(idx)}>Fix →</Btn>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {tooManyErrs&&<Banner type="info">Tip: open your {uploadType==='fps'?'FPS XML':'spreadsheet'} file, fix all highlighted rows, save, and re-upload using the button below.</Banner>}
+          </div>
+        )}
+
+        {/* ── SUCCESS ── */}
+        {step==='success'&&(
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:16,padding:'24px 0'}}>
+            <div style={{width:60,height:60,background:S4.greenLight,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28}}>✓</div>
+            <div style={{fontWeight:700,fontSize:16,color:S4.text}}>YTD data imported successfully</div>
+            <div style={{fontSize:12,color:S4.subtext}}>Data stored in employee YTD tables · visible on each employee profile</div>
+            <div style={{background:S4.cardBg,borderRadius:10,padding:16,width:'100%',display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+              {[['62','Employees updated'],['0','Errors remaining'],['2025/26','Tax year']].map(([val,lbl])=>(
+                <div key={lbl} style={{textAlign:'center'}}>
+                  <div style={{fontSize:22,fontWeight:800,color:S4.text}}>{val}</div>
+                  <div style={{fontSize:11,color:S4.subtext,marginTop:2}}>{lbl}</div>
+                </div>
+              ))}
+            </div>
+            <Banner type="info">Uploaded data overrides any existing YTD data for these employees — this is now the latest source of truth.</Banner>
+          </div>
+        )}
+      </div>
+    ),
+  });
+}
+
 function OrgSettingsScreen({org,payeSchemes,onBack,onAddFreq,onAddPAYE}) {
-  const [activeTab,setActiveTab]=useState('PAYE');
-  const payeData=payeSchemes[0]||null;
+  const [activeTab,    setActiveTab]    = useState('PAYE');
+  const [showUpload,   setShowUpload]   = useState(false);
+  const [ytdStatus,    setYtdStatus]    = useState(null); // null | 'partial' | 'done'
+  const [missingEmps,  setMissingEmps]  = useState(MISSING_YTD_EMPS);
+  const [editEmp,      setEditEmp]      = useState(null);
+  const [completedIds, setCompletedIds] = useState([]);
+
+  const payeData    = payeSchemes[0] || null;
+  const missingCount = missingEmps.filter(e=>!completedIds.includes(e.id)).length;
+  const canManual   = missingCount > 0 && missingCount < 10;
+
+  const handleManualSave = empId => {
+    setCompletedIds(p=>[...p,empId]);
+    setEditEmp(null);
+    if (missingCount - 1 === 0) setYtdStatus('done');
+  };
 
   return (
     <div style={{padding:'24px 28px',maxWidth:1100,margin:'0 auto'}}>
@@ -822,6 +1239,8 @@ function OrgSettingsScreen({org,payeSchemes,onBack,onAddFreq,onAddPAYE}) {
         ← Back to Organisation Dashboard
       </button>
       <div style={{background:'#fff',border:`1px solid ${S4.border}`,borderRadius:12,marginBottom:20}}>
+
+        {/* Org header */}
         <div style={{background:S4.navy,borderRadius:'12px 12px 0 0',padding:'16px 22px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
           <div style={{display:'flex',alignItems:'center',gap:14}}>
             <Avatar initials={org.initials} color={org.color} size={48}/>
@@ -830,20 +1249,25 @@ function OrgSettingsScreen({org,payeSchemes,onBack,onAddFreq,onAddPAYE}) {
               <div style={{color:'#94c5cf',fontSize:12,marginTop:2}}>{org.type} · {org.sites} sites · {org.employees} employees</div>
             </div>
           </div>
-          <div style={{display:'flex',gap:8}}>
+          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
             {payeData?<Pill color="green">✓ PAYE Configured</Pill>:<Pill color="amber">PAYE Pending</Pill>}
+            {ytdStatus==='done'?<Pill color="green">✓ YTD Complete</Pill>:ytdStatus==='partial'?<Pill color="amber">YTD Partial</Pill>:<Pill color="amber">YTD Pending</Pill>}
           </div>
         </div>
+
+        {/* Tabs */}
         <div style={{borderBottom:`1px solid ${S4.border}`,padding:'0 20px',display:'flex'}}>
-          {['PAYE','Sites','Documents'].map(tab=>(
+          {['PAYE','YTD Data','Sites','Documents'].map(tab=>(
             <button key={tab} onClick={()=>setActiveTab(tab)}
               style={{padding:'11px 16px',fontSize:13,fontWeight:600,cursor:'pointer',background:'none',border:'none',
                 color:activeTab===tab?S4.teal:S4.subtext,
                 borderBottom:activeTab===tab?`2.5px solid ${S4.teal}`:'2.5px solid transparent',marginBottom:-1}}>
-              {tab}
+              {tab}{tab==='YTD Data'&&ytdStatus!=='done'&&<span style={{marginLeft:5,width:7,height:7,borderRadius:'50%',background:S4.amber,display:'inline-block',verticalAlign:'middle'}}/>}
             </button>
           ))}
         </div>
+
+        {/* ── PAYE TAB ── */}
         {activeTab==='PAYE'&&(
           <div style={{padding:20,display:'flex',flexDirection:'column',gap:16}}>
             {!payeData?(
@@ -905,14 +1329,146 @@ function OrgSettingsScreen({org,payeSchemes,onBack,onAddFreq,onAddPAYE}) {
             )}
           </div>
         )}
-        {activeTab!=='PAYE'&&(
+
+        {/* ── YTD DATA TAB ── */}
+        {activeTab==='YTD Data'&&(
+          <div style={{padding:20,display:'flex',flexDirection:'column',gap:16}}>
+
+            {/* Header row */}
+            <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
+              <div>
+                <div style={{fontWeight:700,fontSize:14,color:S4.text}}>Year-to-Date Data Upload</div>
+                <div style={{fontSize:12,color:S4.subtext,marginTop:2}}>FPS XML or XLSX — requires a PAYE scheme to be configured first</div>
+              </div>
+              {!payeData
+                ?<div style={{fontSize:12,color:S4.subtext,fontStyle:'italic'}}>⚠ Create a PAYE scheme before uploading</div>
+                :ytdStatus==='done'
+                  ?<Pill color="green">✓ YTD complete</Pill>
+                  :<Btn onClick={()=>setShowUpload(true)}>⬆ Upload YTD data</Btn>}
+            </div>
+
+            {/* Status banners */}
+            {!payeData&&<Banner type="amber">YTD upload is only available once a PAYE scheme has been created for this organisation.</Banner>}
+            {payeData&&!ytdStatus&&<Banner type="amber">YTD data must be uploaded before processing payroll for existing employees with in-year history.</Banner>}
+            {ytdStatus==='done'&&<Banner type="success">All employee YTD data is complete. Data is visible on each employee profile.</Banner>}
+
+            {/* Upload method explainer cards */}
+            {payeData&&ytdStatus!=='done'&&(
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                {[
+                  {icon:'📄',label:'FPS XML',tag:'Recommended',tagC:S4.green,
+                   desc:'Upload the Full Payment Submission XML file from your previous supplier. Employee YTD figures are automatically mapped and stored against employee records.'},
+                  {icon:'📊',label:'XLSX Spreadsheet',tag:'Alternative',tagC:S4.purple,
+                   desc:'No FPS access? Download the YTD template, populate the Employee YTD tab with figures, and upload. Same validation rules apply.'},
+                ].map(m=>(
+                  <div key={m.label} style={{background:S4.cardBg,border:`1px solid ${S4.border}`,borderRadius:10,padding:14,display:'flex',gap:10}}>
+                    <div style={{fontSize:24,flexShrink:0}}>{m.icon}</div>
+                    <div>
+                      <div style={{display:'flex',gap:7,alignItems:'center',marginBottom:4}}>
+                        <span style={{fontWeight:700,fontSize:13,color:S4.text}}>{m.label}</span>
+                        <span style={{background:m.tagC,color:'#fff',borderRadius:4,padding:'1px 6px',fontSize:10,fontWeight:700}}>{m.tag}</span>
+                      </div>
+                      <div style={{fontSize:11,color:S4.subtext,lineHeight:1.5}}>{m.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Validation rules */}
+            {payeData&&ytdStatus!=='done'&&(
+              <div style={{background:'#fafcfd',border:`1px solid ${S4.border}`,borderRadius:10,padding:14}}>
+                <div style={{fontWeight:700,fontSize:12,color:S4.text,marginBottom:8}}>Validation Rules</div>
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  {[
+                    {icon:'✓',col:S4.green, text:'Fewer than 10 errors — valid rows stored immediately; errors shown for manual correction'},
+                    {icon:'✕',col:S4.red,   text:'10 or more errors — entire upload rejected; notification shows affected Payroll IDs and names; re-upload required'},
+                    {icon:'↻',col:S4.teal,  text:'Uploaded data overrides existing YTD data — this becomes the latest source of truth in the DB'},
+                  ].map(r=>(
+                    <div key={r.text} style={{display:'flex',gap:8,alignItems:'flex-start'}}>
+                      <span style={{fontWeight:700,color:r.col,fontSize:13,flexShrink:0,marginTop:1}}>{r.icon}</span>
+                      <span style={{fontSize:12,color:S4.subtext}}>{r.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Manual YTD entry section (shows after upload if <10 missing) */}
+            {payeData&&ytdStatus!=='done'&&(
+              <div style={{borderTop:`1px solid ${S4.border}`,paddingTop:16}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,flexWrap:'wrap',gap:8}}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:13,color:S4.text}}>Manual YTD Entry</div>
+                    <div style={{fontSize:11,color:S4.subtext,marginTop:2}}>
+                      {canManual
+                        ?`${missingCount} employee${missingCount>1?'s':''} with missing fields — available for manual entry (under 10)`
+                        :missingCount>=10
+                          ?`${missingCount} employees missing data — manual entry is disabled; upload required to resolve all missing records`
+                          :'All employees have complete YTD data'}
+                    </div>
+                  </div>
+                  {missingCount>=10&&<Pill color="red">Re-upload required</Pill>}
+                </div>
+
+                {missingCount>=10&&(
+                  <Banner type="error">
+                    {missingCount} employees are missing YTD data — this exceeds the limit for manual correction. Please correct your file and re-upload.
+                    The following employees are affected:
+                    <ul style={{margin:'8px 0 0 16px',padding:0,fontSize:11}}>
+                      {missingEmps.filter(e=>!completedIds.includes(e.id)).map(e=>(
+                        <li key={e.id} style={{marginBottom:2}}><strong>{e.name}</strong> — {e.fields.filter(f=>!f.uploaded).length} field{e.fields.filter(f=>!f.uploaded).length>1?'s':''} missing</li>
+                      ))}
+                    </ul>
+                  </Banner>
+                )}
+
+                {canManual&&(
+                  <div style={{border:`1px solid ${S4.border}`,borderRadius:10,overflow:'hidden'}}>
+                    <div style={{padding:'8px 14px',background:S4.cardBg,borderBottom:`1px solid ${S4.border}`,display:'flex',gap:10,alignItems:'center'}}>
+                      <span style={{fontSize:13,fontWeight:700,color:S4.text}}>Employees with missing YTD data</span>
+                      <Pill color="amber">{missingCount} remaining</Pill>
+                    </div>
+                    {missingEmps.map((emp,i)=>{
+                      const done=completedIds.includes(emp.id);
+                      return (
+                        <div key={emp.id} style={{padding:'10px 14px',borderBottom:i<missingEmps.length-1?`1px solid ${S4.border}`:'none',
+                          display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,
+                          background:done?'#f0fdf4':i%2===0?'#fff':'#fafcfd'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:10}}>
+                            <Avatar initials={emp.initials} color={emp.color} size={30}/>
+                            <div>
+                              <div style={{fontSize:13,fontWeight:600,color:S4.text}}>{emp.name}</div>
+                              <div style={{fontSize:11,color:S4.subtext}}>
+                                {done?'All fields complete':`${emp.fields.filter(f=>!f.uploaded).length} field${emp.fields.filter(f=>!f.uploaded).length>1?'s':''} missing`}
+                              </div>
+                            </div>
+                          </div>
+                          {done
+                            ?<span style={{fontSize:12,color:S4.green,fontWeight:700}}>Complete ✓</span>
+                            :<Btn sm onClick={()=>setEditEmp(emp)}>Enter data →</Btn>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab!=='PAYE'&&activeTab!=='YTD Data'&&(
           <div style={{padding:40,textAlign:'center',color:'#94a3b8',fontSize:13}}>{activeTab} — not in scope for this wireframe</div>
         )}
       </div>
+
       <div style={{display:'flex',justifyContent:'flex-end',gap:10}}>
         <Btn outline onClick={onBack}>← Back to Dashboard</Btn>
         <Btn onClick={onAddFreq}>＋ Add Pay Frequency</Btn>
       </div>
+
+      {showUpload&&<YTDModal org={org} payeSchemes={payeSchemes} onClose={()=>setShowUpload(false)} onDone={()=>{setYtdStatus('done');setShowUpload(false);}}/>}
+      {editEmp&&<ManualYTDModal emp={editEmp} onClose={()=>setEditEmp(null)} onSave={handleManualSave}/>}
     </div>
   );
 }
@@ -924,49 +1480,64 @@ function App() {
   const [activeOrg,setActiveOrg] = useState(null);
   const [payeSchemes,setPayeSchemes] = useState([]);
   const [freqForm,setFreqForm]   = useState(null);
-  const [freqs,setFreqs]         = useState([
-    {id:'f1',name:'Monthly – Salaried',freq:'Monthly', nextPay:'28 Mar 2025',deadline:'24 Mar 2025',method:'BACS',types:['Basic Salary','Bonus']},
-    {id:'f2',name:'Weekly – Hourly',   freq:'Weekly',  nextPay:'07 Apr 2025',deadline:'04 Apr 2025',method:'BACS',types:['Hourly Pay','Shift Allowance']},
-  ]);
+  const [freqs,setFreqs]         = useState([]);
   const [showPAYE,setShowPAYE]   = useState(false);
   const [showFreq,setShowFreq]   = useState(false);
+  const [viewScheduleFreq,setViewScheduleFreq] = useState(null);
 
   const handleSetup = org => { setActiveOrg(org); setStep(2); setShowPAYE(true); };
 
   const handlePAYESave = data => {
     setPayeSchemes(p=>[...p,{id:`paye-${Date.now()}`,...data}]);
-    setShowPAYE(false); setStep(3); setScreen('dashboard');
+    setShowPAYE(false); setStep(3); setScreen('org_settings');
   };
 
   const handleFreqSave = data => {
-    setFreqForm(data); setShowFreq(false); setStep(5); setScreen('schedule');
+    setFreqForm(data); setShowFreq(false); setStep(6); setScreen('schedule');
   };
 
-  const handleScheduleConfirm = () => {
-    const nf={
+  const handleScheduleConfirm = (schedule) => {
+    // First future period drives the headline dates on the card
+    const today = new Date(); today.setHours(0,0,0,0);
+    const firstFuture = schedule && schedule.find(r => {
+      const [d,m,y] = r.payDate.split('/').map(Number);
+      return new Date(y,m-1,d) >= today;
+    });
+    const nf = {
       id:`f-${Date.now()}`,
       name:freqForm.name||`${freqForm.frequency} – ${activeOrg.name}`,
       freq:freqForm.frequency||'Monthly',
-      nextPay:freqForm.firstPayDate||'28 Mar 2025',
-      deadline:'24 Mar 2025',
+      nextPay: firstFuture ? firstFuture.payDate : freqForm.firstPayDate||'—',
+      deadline: firstFuture ? firstFuture.cutOffDate : '—',
       method:freqForm.paymentMethod||'BACS',
       types:freqForm.payTypes||[],
+      schedule: schedule||[],
     };
-    setFreqs(p=>[...p,nf]); setStep(6); setScreen('dashboard');
+    setFreqs(p=>[...p,nf]); setStep(7); setScreen('dashboard');
   };
 
-  const goToDashboard   = () => { setScreen('dashboard'); setStep(payeSchemes.length>0?6:3); };
+  const handleViewSchedule = freq => setViewScheduleFreq(freq);
+
+  const handleScheduleSave = (updatedSchedule, firstFuture) => {
+    setFreqs(prev => prev.map(f => f.id === viewScheduleFreq.id ? {
+      ...f,
+      schedule: updatedSchedule,
+      nextPay:  firstFuture ? firstFuture.payDate    : f.nextPay,
+      deadline: firstFuture ? firstFuture.cutOffDate : f.deadline,
+    } : f));
+    // keep modal open so user sees "Saved" toast, they close manually
+    setViewScheduleFreq(v => v ? {...v, schedule: updatedSchedule} : v);
+  };
+
+  const goToDashboard   = () => { setScreen('dashboard'); setStep(payeSchemes.length>0?7:3); };
   const goToOrgSettings = () => { setScreen('org_settings'); setStep(3); };
-  const goToAddFreq     = () => { setStep(4); setShowFreq(true); };
+  const goToAddFreq     = () => { setStep(5); setShowFreq(true); };
   const goToAddPAYE     = () => { setStep(2); setShowPAYE(true); };
 
   const resetAll = () => {
     setStep(1); setScreen('pending'); setActiveOrg(null);
     setPayeSchemes([]); setFreqForm(null); setShowPAYE(false); setShowFreq(false);
-    setFreqs([
-      {id:'f1',name:'Monthly – Salaried',freq:'Monthly',nextPay:'28 Mar 2025',deadline:'24 Mar 2025',method:'BACS',types:['Basic Salary','Bonus']},
-      {id:'f2',name:'Weekly – Hourly',freq:'Weekly',nextPay:'07 Apr 2025',deadline:'04 Apr 2025',method:'BACS',types:['Hourly Pay','Shift Allowance']},
-    ]);
+    setFreqs([]); setViewScheduleFreq(null);
   };
 
   return (
@@ -974,12 +1545,13 @@ function App() {
       <JourneyBar step={step} />
 
       {screen==='pending'      && <PendingSetup onSetup={handleSetup} />}
-      {screen==='dashboard'    && activeOrg && <OrgDashboard org={activeOrg} payeSchemes={payeSchemes} frequencies={freqs} onAddFreq={goToAddFreq} onOrgSettings={goToOrgSettings} />}
+      {screen==='dashboard'    && activeOrg && <OrgDashboard org={activeOrg} payeSchemes={payeSchemes} frequencies={freqs} onAddFreq={goToAddFreq} onOrgSettings={goToOrgSettings} onViewSchedule={handleViewSchedule} />}
       {screen==='org_settings' && activeOrg && <OrgSettingsScreen org={activeOrg} payeSchemes={payeSchemes} onBack={goToDashboard} onAddFreq={goToAddFreq} onAddPAYE={goToAddPAYE} />}
-      {screen==='schedule'     && activeOrg && freqForm && <SchedulePreview org={activeOrg} freqForm={freqForm} onBack={()=>{setStep(4);setShowFreq(true);setScreen('dashboard');}} onConfirm={handleScheduleConfirm} />}
+      {screen==='schedule'     && activeOrg && freqForm && <SchedulePreview org={activeOrg} freqForm={freqForm} onBack={()=>{setStep(5);setShowFreq(true);setScreen('dashboard');}} onConfirm={handleScheduleConfirm} />}
 
       {showPAYE && activeOrg && <CreatePAYEModal org={activeOrg} onClose={()=>{setShowPAYE(false);setScreen('pending');setStep(1);}} onSave={handlePAYESave} />}
       {showFreq && activeOrg && <CreateFreqModal org={activeOrg} onClose={()=>setShowFreq(false)} onSave={handleFreqSave} />}
+      {viewScheduleFreq && <ViewScheduleModal freq={viewScheduleFreq} onClose={()=>setViewScheduleFreq(null)} onSave={handleScheduleSave} />}
 
       <div style={{textAlign:'center',padding:'12px 0 20px'}}>
         <button onClick={resetAll} style={{fontSize:11,color:'#94a3b8',background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}>↺ Reset wireframe</button>
