@@ -81,28 +81,43 @@ function addMonths(d, n) {
   const lastDay     = new Date(targetYear, normMonth + 1, 0).getDate();
   return new Date(targetYear, normMonth, Math.min(d.getDate(), lastDay));
 }
+function prevWorkingDay(d) {
+  // If d is a working day, return it as-is. Otherwise step backward until one is found.
+  let r = new Date(d);
+  while (!isWorkingDay(r)) r.setDate(r.getDate() - 1);
+  return r;
+}
 function generateSchedule(freq,firstPayDate,method) {
   if(!firstPayDate) return [];
   const parts=firstPayDate.split('/').map(Number);
   const [dd,mm,yy]=[parts[0],parts[1],parts[2]];
   if(!dd||!mm||!yy||yy<2000) return [];
-  const base=new Date(yy,mm-1,dd), yearEnd=taxYearEnd(base), pm=method||'BACS';
+  // Adjust the anchor (first pay date) to a working day too
+  const base=prevWorkingDay(new Date(yy,mm-1,dd));
+  const yearEnd=taxYearEnd(base), pm=method||'BACS';
   const freqDays={'Weekly':7,'Fortnightly':14,'Four-Weekly':28};
-  const rows=[]; let period=0, payDate=new Date(base);
-  while(payDate<=yearEnd){
+  // Keep a separate 'nominal' base for month arithmetic so day-of-month doesn't drift
+  const nominalBase=new Date(yy,mm-1,dd);
+  const rows=[]; let period=0;
+  // nominalPayDate drives month arithmetic; actualPayDate is what employees receive
+  let nominalPayDate = new Date(nominalBase);
+  while(nominalPayDate<=yearEnd){
     period++;
+    const actualPayDate = prevWorkingDay(new Date(nominalPayDate));
+    const wasAdjusted   = fmt(actualPayDate) !== fmt(nominalPayDate);
     let pStart,pEnd;
     if(freq==='Monthly'||freq==='Quarterly'){
-      pEnd=new Date(payDate); pStart=new Date(payDate.getFullYear(),payDate.getMonth(),1);
+      pEnd=new Date(actualPayDate); pStart=new Date(actualPayDate.getFullYear(),actualPayDate.getMonth(),1);
     } else {
-      pEnd=new Date(payDate); pStart=new Date(payDate);
+      pEnd=new Date(actualPayDate); pStart=new Date(actualPayDate);
       pStart.setDate(pStart.getDate()-((freqDays[freq]||7)-1));
     }
-    const dl=calcDeadlines(payDate,pm);
-    rows.push({period,startDate:fmt(pStart),endDate:fmt(pEnd),payDate:fmt(payDate),...dl});
-    if(freq==='Monthly')    payDate=addMonths(base,period);
-    else if(freq==='Quarterly') payDate=addMonths(base,period*3);
-    else { payDate=new Date(payDate); payDate.setDate(payDate.getDate()+(freqDays[freq]||7)); }
+    const dl=calcDeadlines(actualPayDate,pm);
+    rows.push({period,startDate:fmt(pStart),endDate:fmt(pEnd),payDate:fmt(actualPayDate),adjusted:wasAdjusted,nominalDate:fmt(nominalPayDate),...dl});
+    // Advance using NOMINAL date to preserve day-of-month (avoid drift e.g. 30th every month)
+    if(freq==='Monthly')         nominalPayDate=addMonths(nominalBase,period);
+    else if(freq==='Quarterly')  nominalPayDate=addMonths(nominalBase,period*3);
+    else { nominalPayDate=new Date(nominalPayDate); nominalPayDate.setDate(nominalPayDate.getDate()+(freqDays[freq]||7)); }
   }
   return rows;
 }
@@ -217,8 +232,8 @@ const YesNo = ({label,desc,value,onChange}) => (
 // ── Journey Bar ───────────────────────────────────────────────────────────────
 function JourneyBar({step}) {
   const steps = [
-    {id:1,label:'Pending Setup'},{id:2,label:'PAYE Scheme'},{id:3,label:'Organisation'},
-    {id:4,label:'YTD Upload'},{id:5,label:'Pay Frequency'},{id:6,label:'Schedule Preview'},{id:7,label:'Dashboard'},
+    {id:1,label:'Pending Setup'},{id:2,label:'PAYE Scheme'},{id:3,label:'YTD Upload'},
+    {id:4,label:'Pay Frequency'},{id:5,label:'Schedule Preview'},{id:6,label:'Dashboard'},
   ];
   return (
     <div style={{background:S4.navy,padding:'10px 28px',position:'sticky',top:0,zIndex:100}}>
@@ -296,9 +311,9 @@ function PendingSetup({onSetup}) {
 // ── Modal: Create PAYE Scheme ─────────────────────────────────────────────────
 function CreatePAYEModal({org,onClose,onSave}) {
   const [form,setForm] = useState({
-    payeRef:'',payeRefName:'',accountsOfficeRef:'',utr:'',
-    allSites:null,sites:[],
-    employmentAllowance:null,apprenticeshipLevy:null,smallEmployerRelief:null,
+    payeRef:'120/A0045678',payeRefName:'Main PAYE Scheme',accountsOfficeRef:'120PA00045678',utr:'1234567890',
+    allSites:'yes',sites:[...ALL_SITES],
+    employmentAllowance:'Yes',apprenticeshipLevy:'No',smallEmployerRelief:'No',
     schemeEndDate:'',
   });
   const [errors,setErrors] = useState({});
@@ -442,7 +457,7 @@ function CreatePAYEModal({org,onClose,onSave}) {
 
 // ── Modal: Create Pay Frequency ───────────────────────────────────────────────
 function CreateFreqModal({org,onClose,onSave}) {
-  const [form,setForm] = useState({name:'',frequency:'',payTypes:[],firstPayDate:'',paymentMethod:'BACS',bacsLeadDays:'3',autoCalc:true,lockOnFreeze:true});
+  const [form,setForm] = useState({name:'Monthly – Salaried',frequency:'Monthly',payTypes:['Basic Salary','Bonus'],firstPayDate:'30/04/2026',paymentMethod:'BACS',bacsLeadDays:'3',autoCalc:true,lockOnFreeze:true});
   const up = (k,v) => setForm(f=>({...f,[k]:v}));
   const togglePT = pt => up('payTypes',form.payTypes.includes(pt)?form.payTypes.filter(x=>x!==pt):[...form.payTypes,pt]);
   const canProceed = form.name&&form.frequency&&form.payTypes.length>0&&form.firstPayDate;
@@ -646,9 +661,9 @@ function SchedulePreview({org,freqForm,onBack,onConfirm}) {
 
       <div style={{display:'flex',gap:16,flexWrap:'wrap',marginTop:12,marginBottom:6}}>
         {[
-          {dot:S4.red,label:'Cut-off Date',desc:pm==='BACS'?'3 working days before pay date':pm==='Bank Transfer'?'2 working days before pay date':'1 working day before pay date'},
-          {dot:S4.amber,label:'Query Deadline',desc:'1 working day before cut-off'},
-          {dot:S4.teal,label:'BACS Approval',desc:'Same as cut-off — payroll must be approved by this date'},
+          {dot:S4.red,  label:'Cut-off Date',     desc:pm==='BACS'?'3 working days before pay date':pm==='Bank Transfer'?'2 working days before pay date':'1 working day before pay date'},
+          {dot:S4.amber,label:'Query Deadline',    desc:'1 working day before cut-off'},
+          {dot:S4.teal, label:'BACS Approval',     desc:'Same as cut-off — payroll must be approved by this date'},
         ].map(item=>(
           <div key={item.label} style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:S4.subtext}}>
             <span style={{width:8,height:8,borderRadius:'50%',background:item.dot,flexShrink:0,display:'inline-block'}}></span>
@@ -656,18 +671,23 @@ function SchedulePreview({org,freqForm,onBack,onConfirm}) {
             <span>— {item.desc}</span>
           </div>
         ))}
+        <div style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:S4.subtext}}>
+          <span style={{width:8,height:8,borderRadius:2,background:'#fef3c7',border:'1px solid #f59e0b',flexShrink:0,display:'inline-block'}}></span>
+          <strong style={{color:S4.text}}>Adjusted row</strong>
+          <span>— pay date moved earlier to avoid weekend or bank holiday</span>
+        </div>
       </div>
 
       <div style={{marginTop:8,border:`1px solid ${S4.border}`,borderRadius:10,overflow:'hidden',overflowX:'auto'}}>
-        <div style={{display:'grid',gridTemplateColumns:'44px 100px 100px 110px 110px 120px 130px 44px',background:S4.navy,padding:'10px 14px',gap:8,minWidth:760}}>
+        <div style={{display:'grid',gridTemplateColumns:'44px 100px 100px 110px 110px 120px 160px 44px',background:S4.navy,padding:'10px 14px',gap:8,minWidth:780}}>
           {['P#','Period Start','Period End','Cut-off Date','Query Deadline','BACS Approval','Pay Date',''].map((h,i)=>(
             <div key={i} style={{color:'#fff',fontSize:10,fontWeight:700,lineHeight:1.3}}>{h}</div>
           ))}
         </div>
         {schedule.map((row,idx)=>(
-          <div key={idx} style={{display:'grid',gridTemplateColumns:'44px 100px 100px 110px 110px 120px 130px 44px',padding:'9px 14px',gap:8,alignItems:'center',
+          <div key={idx} style={{display:'grid',gridTemplateColumns:'44px 100px 100px 110px 110px 120px 160px 44px',padding:'9px 14px',gap:8,alignItems:'center',
             borderBottom:idx<schedule.length-1?`1px solid ${S4.border}`:'none',
-            background:editingIdx===idx?S4.tealLight:idx%2===0?'#fff':'#fafcfd',minWidth:760}}>
+            background:editingIdx===idx?S4.tealLight:row.adjusted?'#fffbeb':idx%2===0?'#fff':'#fafcfd',minWidth:780}}>
             <div style={{fontSize:11,fontWeight:700,color:S4.subtext}}>P{row.period}</div>
             <div style={{fontSize:11,color:S4.text}}>{row.startDate}</div>
             <div style={{fontSize:11,color:S4.text}}>{row.endDate}</div>
@@ -685,11 +705,14 @@ function SchedulePreview({org,freqForm,onBack,onConfirm}) {
                   </div>
                 </div>
               ):(
-                <button onClick={()=>{setEditingIdx(idx);const[d,m,y]=row.payDate.split('/');setCalVal(`${y}-${m}-${d}`);}}
-                  style={{background:'none',border:`1px solid ${S4.border}`,borderRadius:6,padding:'4px 8px',cursor:'pointer',fontSize:11,color:S4.text,display:'flex',alignItems:'center',gap:4,width:'100%',justifyContent:'space-between'}}>
-                  <span style={{fontWeight:600}}>{row.payDate}</span>
-                  <span style={{color:'#94a3b8',fontSize:9}}>✏</span>
-                </button>
+                <div>
+                  <button onClick={()=>{setEditingIdx(idx);const[d,m,y]=row.payDate.split('/');setCalVal(`${y}-${m}-${d}`);}}
+                    style={{background:'none',border:`1px solid ${row.adjusted?S4.amber:S4.border}`,borderRadius:6,padding:'4px 8px',cursor:'pointer',fontSize:11,color:S4.text,display:'flex',alignItems:'center',gap:4,width:'100%',justifyContent:'space-between'}}>
+                    <span style={{fontWeight:600}}>{row.payDate}</span>
+                    <span style={{color:'#94a3b8',fontSize:9}}>✏</span>
+                  </button>
+                  {row.adjusted&&<div style={{fontSize:9,color:'#b45309',marginTop:2,paddingLeft:2}}>↩ moved from {row.nominalDate}</div>}
+                </div>
               )}
             </div>
             <div>{idx===0&&<Pill color="teal">Next</Pill>}</div>
@@ -1215,6 +1238,195 @@ function YTDModal({org,payeSchemes,onClose,onDone}) {
   });
 }
 
+// ── Screen 3: YTD Upload — per-PAYE, full page ───────────────────────────────
+// Primary journey step after PAYE creation. Shows all PAYEs for this org, allows
+// FPS/XLSX upload for each, and lets the user add further PAYEs in-flow before
+// continuing to pay frequencies.
+function YTDUploadScreen({org, payeSchemes, onAddPAYE, onContinue}) {
+  // Track upload status per PAYE id
+  const [ytdByPAYE,  setYtdByPAYE]  = useState({});  // { payeId: 'uploaded' | 'skipped' }
+  const [activePAYE, setActivePAYE]  = useState(payeSchemes[0]?.id || null);
+  const [uploadModal,setUploadModal] = useState(false);
+
+  // Keep activePAYE in sync when payeSchemes grows (new PAYE added)
+  const prevLen = payeSchemes.length;
+  if (payeSchemes.length > prevLen && payeSchemes.at(-1)) {
+    setActivePAYE(payeSchemes.at(-1).id);
+  }
+
+  const allDone  = payeSchemes.length > 0 && payeSchemes.every(p => ytdByPAYE[p.id]);
+  const anyDone  = payeSchemes.some(p => ytdByPAYE[p.id] === 'uploaded');
+  const activePAYEData = payeSchemes.find(p => p.id === activePAYE);
+
+  const handleUploadDone = () => {
+    setYtdByPAYE(prev => ({...prev, [activePAYE]: 'uploaded'}));
+    setUploadModal(false);
+    // Auto-advance to next PAYE that hasn't been uploaded yet
+    const next = payeSchemes.find(p => p.id !== activePAYE && !ytdByPAYE[p.id]);
+    if (next) setActivePAYE(next.id);
+  };
+
+  const handleSkip = payeId => setYtdByPAYE(prev => ({...prev, [payeId]: 'skipped'}));
+
+  return (
+    <div style={{padding:'24px 28px', maxWidth:1100, margin:'0 auto'}}>
+      {/* Page header */}
+      <div style={{marginBottom:20}}>
+        <h1 style={{fontSize:19,fontWeight:700,color:S4.text,margin:0}}>Upload Year-to-Date Data</h1>
+        <p style={{fontSize:13,color:S4.subtext,marginTop:4}}>
+          Upload an FPS XML or XLSX file for each PAYE scheme. This populates employee YTD tables and becomes the source of truth for payroll runs.
+        </p>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'280px 1fr',gap:20,alignItems:'start'}}>
+
+        {/* Left: PAYE list */}
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          <div style={{fontWeight:700,fontSize:12,color:S4.subtext,textTransform:'uppercase',letterSpacing:0.5,marginBottom:2}}>PAYE Schemes</div>
+          {payeSchemes.map(p=>{
+            const status = ytdByPAYE[p.id];
+            const isActive = activePAYE === p.id;
+            return (
+              <button key={p.id} onClick={()=>setActivePAYE(p.id)}
+                style={{display:'flex',alignItems:'flex-start',gap:10,padding:'11px 14px',borderRadius:10,cursor:'pointer',textAlign:'left',
+                  background:isActive?S4.tealLight:'#fff',
+                  border:`2px solid ${isActive?S4.teal:S4.border}`}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:700,fontSize:13,color:S4.text,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{p.payeRef||'PAYE Scheme'}</div>
+                  <div style={{fontSize:11,color:S4.subtext,marginTop:1}}>{p.payeRefName||org.name}</div>
+                </div>
+                <span style={{
+                  fontSize:10,fontWeight:700,borderRadius:999,padding:'2px 8px',flexShrink:0,marginTop:1,
+                  background:status==='uploaded'?S4.greenLight:status==='skipped'?S4.amberLight:'#f1f5f9',
+                  color:status==='uploaded'?S4.green:status==='skipped'?'#92400e':'#94a3b8',
+                }}>
+                  {status==='uploaded'?'✓ Uploaded':status==='skipped'?'Skipped':'Pending'}
+                </span>
+              </button>
+            );
+          })}
+
+          {/* Add another PAYE */}
+          <button onClick={onAddPAYE}
+            style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',borderRadius:10,cursor:'pointer',
+              background:'none',border:`2px dashed ${S4.border}`,color:S4.teal,fontWeight:700,fontSize:12}}>
+            <span style={{fontSize:16}}>＋</span> Add another PAYE scheme
+          </button>
+        </div>
+
+        {/* Right: upload panel for active PAYE */}
+        <div style={{background:'#fff',border:`1px solid ${S4.border}`,borderRadius:12,overflow:'hidden'}}>
+          {activePAYEData ? (
+            <>
+              {/* PAYE header */}
+              <div style={{background:S4.navy,padding:'14px 20px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <div>
+                  <div style={{color:'#fff',fontWeight:700,fontSize:15}}>{activePAYEData.payeRef||'PAYE Scheme'}</div>
+                  <div style={{color:'#94c5cf',fontSize:11,marginTop:2}}>{activePAYEData.payeRefName||org.name} · {org.type}</div>
+                </div>
+                {ytdByPAYE[activePAYE]==='uploaded'
+                  ?<Pill color="green">✓ YTD Uploaded</Pill>
+                  :ytdByPAYE[activePAYE]==='skipped'
+                    ?<Pill color="amber">Skipped</Pill>
+                    :<Pill color="amber">Pending upload</Pill>}
+              </div>
+
+              <div style={{padding:20,display:'flex',flexDirection:'column',gap:14}}>
+                {ytdByPAYE[activePAYE]==='uploaded' ? (
+                  <>
+                    <Banner type="success">YTD data uploaded successfully. Employee YTD tables have been populated and this is now the source of truth.</Banner>
+                    <div style={{display:'flex',gap:10}}>
+                      <Btn outline onClick={()=>setUploadModal(true)}>Re-upload →</Btn>
+                    </div>
+                  </>
+                ) : ytdByPAYE[activePAYE]==='skipped' ? (
+                  <>
+                    <Banner type="amber">YTD upload skipped. You can return to Org Settings → YTD Data at any time to upload before running payroll for existing employees.</Banner>
+                    <Btn outline onClick={()=>setYtdByPAYE(prev=>({...prev,[activePAYE]:undefined}))}>Upload now →</Btn>
+                  </>
+                ) : (
+                  <>
+                    <Banner type="info">Upload an FPS XML file from your previous payroll supplier, or use the XLSX template if FPS isn't available. Uploaded data overrides any existing YTD figures for this PAYE.</Banner>
+
+                    {/* Method cards */}
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                      {[
+                        {icon:'📄',label:'FPS XML',tag:'Recommended',tagC:S4.green,
+                         desc:'Full Payment Submission XML exported from previous payroll software. Employee YTD figures are automatically mapped.'},
+                        {icon:'📊',label:'XLSX Spreadsheet',tag:'Alternative',tagC:S4.purple,
+                         desc:"No FPS access? Download the XLSX template, populate the Employee YTD tab, then upload."},
+                      ].map(m=>(
+                        <div key={m.label} style={{background:S4.cardBg,border:`1px solid ${S4.border}`,borderRadius:10,padding:14,display:'flex',gap:10}}>
+                          <div style={{fontSize:24,flexShrink:0}}>{m.icon}</div>
+                          <div>
+                            <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:4,flexWrap:'wrap'}}>
+                              <span style={{fontWeight:700,fontSize:13,color:S4.text}}>{m.label}</span>
+                              <span style={{background:m.tagC,color:'#fff',borderRadius:4,padding:'1px 6px',fontSize:10,fontWeight:700}}>{m.tag}</span>
+                            </div>
+                            <div style={{fontSize:11,color:S4.subtext,lineHeight:1.5}}>{m.desc}</div>
+                            {m.label==='XLSX Spreadsheet'&&<button style={{marginTop:5,fontSize:11,color:S4.teal,background:'none',border:'none',cursor:'pointer',padding:0,textDecoration:'underline'}}>⬇ Download template</button>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Validation rules */}
+                    <div style={{background:'#fafcfd',border:`1px solid ${S4.border}`,borderRadius:10,padding:14}}>
+                      <div style={{fontWeight:700,fontSize:11,color:S4.subtext,textTransform:'uppercase',letterSpacing:0.4,marginBottom:8}}>Validation Rules</div>
+                      {[
+                        {icon:'✓',col:S4.green, text:'Fewer than 10 errors — valid rows stored; errors shown per Payroll ID for manual correction'},
+                        {icon:'✕',col:S4.red,   text:'10 or more errors — upload rejected; affected employees listed by Payroll ID and name; re-upload required'},
+                        {icon:'↻',col:S4.teal,  text:'Upload overrides existing YTD data for this PAYE — becomes the latest source of truth in the DB'},
+                      ].map(r=>(
+                        <div key={r.text} style={{display:'flex',gap:8,alignItems:'flex-start',marginBottom:5}}>
+                          <span style={{fontWeight:700,color:r.col,fontSize:13,flexShrink:0}}>{r.icon}</span>
+                          <span style={{fontSize:12,color:S4.subtext}}>{r.text}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                      <Btn onClick={()=>setUploadModal(true)}>⬆ Upload YTD data →</Btn>
+                      <Btn ghost sm onClick={()=>handleSkip(activePAYE)}>Skip for now</Btn>
+                    </div>
+                  </>
+                )}
+              </div>
+            </>
+          ) : (
+            <div style={{padding:40,textAlign:'center',color:S4.subtext,fontSize:13}}>Select a PAYE scheme to upload YTD data</div>
+          )}
+        </div>
+      </div>
+
+      {/* Footer actions */}
+      <div style={{marginTop:20,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
+        <div style={{fontSize:12,color:S4.subtext}}>
+          {allDone
+            ? <span style={{color:S4.green,fontWeight:700}}>✓ All PAYE schemes have YTD data — ready to continue</span>
+            : anyDone
+              ? `${payeSchemes.filter(p=>ytdByPAYE[p.id]==='uploaded').length} of ${payeSchemes.length} PAYE scheme${payeSchemes.length>1?'s':''} uploaded`
+              : 'Upload FPS or XLSX for each PAYE scheme before processing payroll'}
+        </div>
+        <div style={{display:'flex',gap:10}}>
+          {!allDone && payeSchemes.some(p=>!ytdByPAYE[p.id]) && (
+            <Btn ghost sm onClick={()=>payeSchemes.filter(p=>!ytdByPAYE[p.id]).forEach(p=>handleSkip(p.id))}>
+              Skip all remaining
+            </Btn>
+          )}
+          <Btn disabled={payeSchemes.length===0} onClick={onContinue}>
+            Continue to Pay Frequencies →
+          </Btn>
+        </div>
+      </div>
+
+      {uploadModal && activePAYEData && (
+        <YTDModal org={org} payeSchemes={[activePAYEData]} onClose={()=>setUploadModal(false)} onDone={handleUploadDone}/>
+      )}
+    </div>
+  );
+}
+
 function OrgSettingsScreen({org,payeSchemes,onBack,onAddFreq,onAddPAYE}) {
   const [activeTab,    setActiveTab]    = useState('PAYE');
   const [showUpload,   setShowUpload]   = useState(false);
@@ -1489,11 +1701,11 @@ function App() {
 
   const handlePAYESave = data => {
     setPayeSchemes(p=>[...p,{id:`paye-${Date.now()}`,...data}]);
-    setShowPAYE(false); setStep(3); setScreen('org_settings');
+    setShowPAYE(false); setStep(3); setScreen('ytd_upload');
   };
 
   const handleFreqSave = data => {
-    setFreqForm(data); setShowFreq(false); setStep(6); setScreen('schedule');
+    setFreqForm(data); setShowFreq(false); setStep(5); setScreen('schedule');
   };
 
   const handleScheduleConfirm = (schedule) => {
@@ -1513,7 +1725,7 @@ function App() {
       types:freqForm.payTypes||[],
       schedule: schedule||[],
     };
-    setFreqs(p=>[...p,nf]); setStep(7); setScreen('dashboard');
+    setFreqs(p=>[...p,nf]); setStep(6); setScreen('dashboard');
   };
 
   const handleViewSchedule = freq => setViewScheduleFreq(freq);
@@ -1525,13 +1737,12 @@ function App() {
       nextPay:  firstFuture ? firstFuture.payDate    : f.nextPay,
       deadline: firstFuture ? firstFuture.cutOffDate : f.deadline,
     } : f));
-    // keep modal open so user sees "Saved" toast, they close manually
     setViewScheduleFreq(v => v ? {...v, schedule: updatedSchedule} : v);
   };
 
-  const goToDashboard   = () => { setScreen('dashboard'); setStep(payeSchemes.length>0?7:3); };
+  const goToDashboard   = () => { setScreen('dashboard'); setStep(payeSchemes.length>0?6:3); };
   const goToOrgSettings = () => { setScreen('org_settings'); setStep(3); };
-  const goToAddFreq     = () => { setStep(5); setShowFreq(true); };
+  const goToAddFreq     = () => { setStep(4); setShowFreq(true); };
   const goToAddPAYE     = () => { setStep(2); setShowPAYE(true); };
 
   const resetAll = () => {
@@ -1545,11 +1756,12 @@ function App() {
       <JourneyBar step={step} />
 
       {screen==='pending'      && <PendingSetup onSetup={handleSetup} />}
+      {screen==='ytd_upload'   && activeOrg && <YTDUploadScreen org={activeOrg} payeSchemes={payeSchemes} onAddPAYE={goToAddPAYE} onContinue={()=>{setStep(4);setScreen('dashboard');}} />}
       {screen==='dashboard'    && activeOrg && <OrgDashboard org={activeOrg} payeSchemes={payeSchemes} frequencies={freqs} onAddFreq={goToAddFreq} onOrgSettings={goToOrgSettings} onViewSchedule={handleViewSchedule} />}
       {screen==='org_settings' && activeOrg && <OrgSettingsScreen org={activeOrg} payeSchemes={payeSchemes} onBack={goToDashboard} onAddFreq={goToAddFreq} onAddPAYE={goToAddPAYE} />}
-      {screen==='schedule'     && activeOrg && freqForm && <SchedulePreview org={activeOrg} freqForm={freqForm} onBack={()=>{setStep(5);setShowFreq(true);setScreen('dashboard');}} onConfirm={handleScheduleConfirm} />}
+      {screen==='schedule'     && activeOrg && freqForm && <SchedulePreview org={activeOrg} freqForm={freqForm} onBack={()=>{setStep(4);setShowFreq(true);setScreen('dashboard');}} onConfirm={handleScheduleConfirm} />}
 
-      {showPAYE && activeOrg && <CreatePAYEModal org={activeOrg} onClose={()=>{setShowPAYE(false);setScreen('pending');setStep(1);}} onSave={handlePAYESave} />}
+      {showPAYE && activeOrg && <CreatePAYEModal org={activeOrg} onClose={()=>{setShowPAYE(false);if(screen==='ytd_upload')return;setScreen('pending');setStep(1);}} onSave={handlePAYESave} />}
       {showFreq && activeOrg && <CreateFreqModal org={activeOrg} onClose={()=>setShowFreq(false)} onSave={handleFreqSave} />}
       {viewScheduleFreq && <ViewScheduleModal freq={viewScheduleFreq} onClose={()=>setViewScheduleFreq(null)} onSave={handleScheduleSave} />}
 
