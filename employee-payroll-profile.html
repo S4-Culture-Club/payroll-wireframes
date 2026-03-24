@@ -40,7 +40,7 @@
 
   /* LAYOUT */
   .page-body { max-width: 1200px; margin: 0 auto; padding: 24px; }
-  .top-grid { display: grid; grid-template-columns: 1fr 340px; gap: 16px; margin-bottom: 20px; }
+  .top-grid { display: grid; grid-template-columns: 1fr 440px; gap: 16px; margin-bottom: 20px; }
 
   /* CARDS */
   .card { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
@@ -51,9 +51,11 @@
   .pay-info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
   .pay-field-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
   .pay-field-value { font-size: 14px; font-weight: 500; }
-  .ytd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .ytd-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 14px; }
+  .ytd-group-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; grid-column: 1 / -1; padding-top: 8px; border-top: 1px solid var(--border); margin-top: 2px; }
+  .ytd-group-label:first-child { border-top: none; padding-top: 0; margin-top: 0; }
   .ytd-label { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
-  .ytd-value { font-size: 15px; font-weight: 600; }
+  .ytd-value { font-size: 14px; font-weight: 600; }
 
   /* SECTION CARD + TABS */
   .section-card { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
@@ -239,10 +241,18 @@
       </div>
       <div class="card-body">
         <div class="ytd-grid">
-          <div><div class="ytd-label">Gross Earnings</div><div class="ytd-value">£22,500</div></div>
-          <div><div class="ytd-label">Gross Earning for NI</div><div class="ytd-value">£9,568.80</div></div>
-          <div><div class="ytd-label">Gross Earnings for Tax</div><div class="ytd-value">£6,021.50</div></div>
-          <div><div class="ytd-label">Tax Paid</div><div class="ytd-value">£7,800.43</div></div>
+          <div class="ytd-group-label">Earnings</div>
+          <div><div class="ytd-label">Gross Earnings</div><div class="ytd-value">£22,500.00</div></div>
+          <div><div class="ytd-label">Taxable Pay</div><div class="ytd-value">£13,072.50</div></div>
+          <div><div class="ytd-label">NIable Pay</div><div class="ytd-value">£22,500.00</div></div>
+          <div class="ytd-group-label">Tax &amp; NI</div>
+          <div><div class="ytd-label">Tax Paid (PAYE)</div><div class="ytd-value">£2,614.50</div></div>
+          <div><div class="ytd-label">Employee NI</div><div class="ytd-value">£1,045.80</div></div>
+          <div><div class="ytd-label">Employer NI</div><div class="ytd-value">£0.00</div></div>
+          <div class="ytd-group-label">Pension</div>
+          <div><div class="ytd-label">Employee Pension</div><div class="ytd-value">£891.00</div></div>
+          <div><div class="ytd-label">Employer Pension</div><div class="ytd-value">£534.60</div></div>
+          <div><div class="ytd-label">Net Pay</div><div class="ytd-value" style="color:var(--teal)">£17,948.70</div></div>
         </div>
       </div>
     </div>
