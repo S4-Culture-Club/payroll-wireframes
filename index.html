@@ -22,11 +22,7 @@
       align-items: center;
       justify-content: space-between;
     }
-    .nav-brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+    .nav-brand { display: flex; align-items: center; gap: 12px; }
     .nav-logo {
       width: 32px; height: 32px;
       background: #1d8a9a;
@@ -42,215 +38,181 @@
       color: #94c5cf;
       border-radius: 6px;
       padding: 4px 12px;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 600;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
     }
 
     /* ── Hero ── */
     .hero {
-      background: linear-gradient(135deg, #0d3d4f 0%, #1a6b7a 100%);
-      padding: 52px 32px 48px;
+      background: linear-gradient(135deg, #0d3d4f 0%, #1d8a9a 100%);
+      padding: 48px 32px 40px;
       text-align: center;
     }
-    .hero-eyebrow {
-      display: inline-block;
-      background: rgba(29,138,154,0.35);
-      border: 1px solid rgba(29,138,154,0.5);
-      color: #7dd8e2;
-      border-radius: 999px;
-      padding: 4px 16px;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      margin-bottom: 18px;
-    }
-    .hero h1 { color: #fff; font-size: 32px; font-weight: 800; margin-bottom: 12px; line-height: 1.2; }
-    .hero p  { color: #94c5cf; font-size: 15px; max-width: 520px; margin: 0 auto; line-height: 1.6; }
+    .hero-title { color: #fff; font-size: 28px; font-weight: 700; margin-bottom: 10px; }
+    .hero-sub   { color: #94c5cf; font-size: 15px; max-width: 560px; margin: 0 auto; }
 
-    /* ── Main content ── */
-    .main {
-      flex: 1;
-      padding: 44px 32px 60px;
-      max-width: 920px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    .section-label {
-      font-size: 11px;
-      font-weight: 700;
-      color: #6b8a94;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      margin-bottom: 20px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #d0e2e8;
-    }
-
-    .cards {
+    /* ── Grid ── */
+    main { flex: 1; padding: 40px 32px; max-width: 1200px; margin: 0 auto; width: 100%; }
+    .grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 20px;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
     }
 
-    /* ── Journey card ── */
+    /* ── Card ── */
     .card {
       background: #fff;
-      border: 1.5px solid #d0e2e8;
-      border-radius: 14px;
-      overflow: hidden;
+      border: 1px solid #dde4e8;
+      border-radius: 12px;
       text-decoration: none;
+      color: inherit;
       display: flex;
       flex-direction: column;
-      transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
-      cursor: pointer;
+      overflow: hidden;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      box-shadow: 0 1px 4px rgba(13,61,79,0.07);
     }
     .card:hover {
-      border-color: #1d8a9a;
-      box-shadow: 0 8px 32px rgba(13,61,79,0.12);
-      transform: translateY(-2px);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(13,61,79,0.13);
     }
     .card-header {
-      padding: 22px 22px 18px;
       display: flex;
       align-items: flex-start;
-      gap: 16px;
+      gap: 14px;
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid #eef2f4;
     }
     .card-icon {
-      width: 52px; height: 52px;
-      border-radius: 12px;
+      width: 44px; height: 44px;
+      border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 22px;
+      font-size: 20px;
       flex-shrink: 0;
     }
-    .card-meta { flex: 1; min-width: 0; }
+    .card-meta { flex: 1; }
     .card-badge {
       display: inline-block;
-      border-radius: 5px;
-      padding: 2px 8px;
       font-size: 10px;
       font-weight: 700;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
+      border-radius: 4px;
+      padding: 2px 8px;
       margin-bottom: 6px;
     }
-    .card-title { font-size: 17px; font-weight: 700; color: #1a2e35; margin-bottom: 5px; }
-    .card-desc  { font-size: 13px; color: #6b8a94; line-height: 1.55; }
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a2e38;
+      margin-bottom: 5px;
+      line-height: 1.3;
+    }
+    .card-desc {
+      font-size: 12px;
+      color: #5b7280;
+      line-height: 1.5;
+    }
 
-    .card-steps {
-      margin: 0 22px;
-      padding: 14px 0;
-      border-top: 1px solid #d0e2e8;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .step-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+    /* ── Steps ── */
+    .card-steps { padding: 16px 20px; flex: 1; display: flex; flex-direction: column; gap: 9px; }
+    .step-row { display: flex; align-items: flex-start; gap: 10px; }
     .step-num {
       width: 20px; height: 20px;
+      background: #e8f6f8;
+      color: #1d8a9a;
       border-radius: 50%;
-      background: #eef4f7;
-      color: #6b8a94;
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 700;
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
+      margin-top: 1px;
     }
-    .step-label { font-size: 12px; color: #1a2e35; font-weight: 500; }
+    .step-label { font-size: 12px; color: #374151; line-height: 1.4; }
 
+    /* ── Card footer ── */
     .card-footer {
-      margin: 14px 22px 22px;
-      background: #0d3d4f;
-      color: #fff;
-      border: none;
-      border-radius: 9px;
-      padding: 11px;
-      font-size: 13px;
-      font-weight: 700;
-      text-align: center;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      cursor: pointer;
-      transition: background 0.15s;
-      text-decoration: none;
+      padding: 12px 20px;
+      background: #f7f9fa;
+      border-top: 1px solid #eef2f4;
+      font-size: 12px;
+      font-weight: 600;
+      color: #1d8a9a;
+      transition: background 0.15s, color 0.15s;
     }
-    .card:hover .card-footer { background: #1a6b7a; }
+    .card:hover .card-footer {
+      background: #1d8a9a;
+      color: #fff;
+    }
 
     /* ── Info strip ── */
     .info-strip {
-      margin-top: 32px;
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      border-radius: 10px;
-      padding: 14px 18px;
+      background: #e8f6f8;
+      border: 1px solid #b3dfe5;
+      border-radius: 8px;
+      padding: 12px 16px;
       font-size: 12px;
-      color: #1d4ed8;
+      color: #0a5a6b;
       display: flex;
       gap: 10px;
       align-items: flex-start;
+      line-height: 1.6;
     }
-    .info-strip span:first-child { flex-shrink: 0; font-weight: 700; }
+    .info-strip span:first-child { font-size: 16px; flex-shrink: 0; margin-top: -1px; }
 
     /* ── Footer ── */
     footer {
-      background: #fff;
-      border-top: 1px solid #d0e2e8;
-      padding: 16px 32px;
       text-align: center;
-      font-size: 11px;
+      padding: 20px;
+      font-size: 12px;
       color: #94a3b8;
+      border-top: 1px solid #dde4e8;
+      background: #fff;
+    }
+
+    @media (max-width: 640px) {
+      .nav { padding: 12px 16px; }
+      main { padding: 24px 16px; }
+      .hero { padding: 32px 16px; }
+      .hero-title { font-size: 22px; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Nav -->
   <nav class="nav">
     <div class="nav-brand">
       <div class="nav-logo">S4</div>
       <div>
         <div class="nav-title">S4Pay</div>
-        <div class="nav-sub">Bureau Administration</div>
+        <div class="nav-sub">Bureau Payroll Platform</div>
       </div>
     </div>
     <div class="nav-badge">Wireframe Portal</div>
   </nav>
 
-  <!-- Hero -->
   <div class="hero">
-    <div class="hero-eyebrow">Interactive Wireframes</div>
-    <h1>S4Pay Product Wireframes</h1>
-    <p>Explore interactive journey wireframes for the S4Pay bureau payroll platform. Select a journey below to begin.</p>
+    <div class="hero-title">Interactive Wireframes</div>
+    <div class="hero-sub">Design review and story validation for S4Pay bureau flows. All data is simulated — no real payroll or HMRC data is used.</div>
   </div>
 
-  <!-- Main -->
-  <main class="main">
-    <div class="section-label">Select a journey</div>
-
-    <div class="cards">
+  <main>
+    <div class="grid">
 
       <!-- Bureau Setup -->
       <a class="card" href="bureau-setup.html">
         <div class="card-header">
-          <div class="card-icon" style="background:#e6f4f6;">🏢</div>
+          <div class="card-icon" style="background:#e0eaf0;">🏢</div>
           <div class="card-meta">
-            <div class="card-badge" style="background:#e6f4f6; color:#1a6b7a;">Bureau Setup</div>
-            <div class="card-title">Organisation &amp; PAYE Setup</div>
-            <div class="card-desc">Onboard a new client organisation — configure PAYE scheme details, HMRC references, pay frequencies and generate pay schedules.</div>
+            <div class="card-badge" style="background:#e0eaf0; color:#0d3d4f;">Bureau Setup</div>
+            <div class="card-title">Bureau Client Onboarding</div>
+            <div class="card-desc">Full onboarding journey for a new payroll bureau client — PAYE creation, YTD data upload, pay frequencies and schedule generation.</div>
           </div>
         </div>
         <div class="card-steps">
-          <div class="step-row"><div class="step-num">1</div><div class="step-label">Pending Setup dashboard</div></div>
-          <div class="step-row"><div class="step-num">2</div><div class="step-label">Create PAYE scheme with HMRC references</div></div>
+          <div class="step-row"><div class="step-num">1</div><div class="step-label">Pending Setup — select organisation</div></div>
+          <div class="step-row"><div class="step-num">2</div><div class="step-label">Create PAYE scheme &amp; upload YTD data</div></div>
           <div class="step-row"><div class="step-num">3</div><div class="step-label">Organisation dashboard &amp; settings</div></div>
           <div class="step-row"><div class="step-num">4</div><div class="step-label">Create pay frequency &amp; payment method</div></div>
           <div class="step-row"><div class="step-num">5</div><div class="step-label">Preview &amp; save pay schedule</div></div>
@@ -278,7 +240,7 @@
         <div class="card-footer">Start Amendments journey →</div>
       </a>
 
-      <!-- Rota Pay Run Comparison -->
+      <!-- Rota Payrun Comparison -->
       <a class="card" href="rota-payrun-comparison-wireframe.html">
         <div class="card-header">
           <div class="card-icon" style="background:#fef3c7;">⚠️</div>
@@ -298,11 +260,31 @@
         <div class="card-footer">Start Rota Comparison journey →</div>
       </a>
 
+      <!-- Employee Payroll Profile -->
+      <a class="card" href="employee-payroll-profile.html">
+        <div class="card-header">
+          <div class="card-icon" style="background:#e8f6f8;">👤</div>
+          <div class="card-meta">
+            <div class="card-badge" style="background:#e8f6f8; color:#0a5a6b;">Employee Profile</div>
+            <div class="card-title">Employee Payroll Profile</div>
+            <div class="card-desc">Employee-level payroll tab covering pay information, YTD figures, additions &amp; deductions, life time events, and attachments of earnings.</div>
+          </div>
+        </div>
+        <div class="card-steps">
+          <div class="step-row"><div class="step-num">1</div><div class="step-label">Pay information &amp; YTD summary cards</div></div>
+          <div class="step-row"><div class="step-num">2</div><div class="step-label">Additions &amp; deductions — end date or occurrences</div></div>
+          <div class="step-row"><div class="step-num">3</div><div class="step-label">Life time events — SMP, SPP, ShPP, SAP, SPBeP, Remission</div></div>
+          <div class="step-row"><div class="step-num">4</div><div class="step-label">HMRC required documents checklist per event type</div></div>
+          <div class="step-row"><div class="step-num">5</div><div class="step-label">Attachment of earnings — priority orders, % or fixed, recurrence</div></div>
+        </div>
+        <div class="card-footer">View Employee Profile →</div>
+      </a>
+
     </div>
 
     <div class="info-strip">
       <span>ℹ</span>
-      <span>These are interactive wireframes built for design review and story validation. All data is simulated — no real payroll or HMRC data is used. To deploy, upload all files (<strong>index.html</strong>, <strong>bureau-setup.html</strong>, <strong>payroll-amendments-wireframe.html</strong>, <strong>rota-payrun-comparison-wireframe.html</strong>) to the same GitHub Pages repository.</span>
+      <span>These are interactive wireframes built for design review and story validation. All data is simulated — no real payroll or HMRC data is used. To deploy, upload all files (<strong>index.html</strong>, <strong>bureau-setup.html</strong>, <strong>payroll-amendments-wireframe.html</strong>, <strong>rota-payrun-comparison-wireframe.html</strong>, <strong>employee-payroll-profile.html</strong>) to the same GitHub Pages repository root.</span>
     </div>
   </main>
 

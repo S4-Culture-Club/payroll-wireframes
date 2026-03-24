@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S4Pay – Employee Profile: Jane Wilson</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #0d3d4f; --navy-light: #1a5568;
+    --teal: #1d8a9a; --teal-light: #e8f6f8;
+    --amber: #f59e0b; --white: #ffffff;
+    --surface: #f7f9fa; --surface-alt: #f0f4f6;
+    --border: #dde4e8; --border-dark: #c5d0d5;
+    --text-primary: #1a2e38; --text-secondary: #5b7280; --text-muted: #8fa3ae;
+    --success: #059669; --success-bg: #ecfdf5;
+    --warning: #d97706; --warning-bg: #fffbeb;
+    --danger: #dc2626; --danger-bg: #fef2f2;
+    --radius: 6px; --radius-lg: 10px;
+    --shadow: 0 1px 3px rgba(13,61,79,0.08), 0 1px 2px rgba(13,61,79,0.05);
+    --shadow-lg: 0 4px 16px rgba(13,61,79,0.12);
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; background: var(--surface); color: var(--text-primary); min-height: 100vh; line-height: 1.5; }
+
+  /* HEADER */
+  .emp-header { background: var(--navy); color: white; padding: 0 24px; display: flex; align-items: center; gap: 24px; min-height: 72px; }
+  .emp-avatar { width: 48px; height: 48px; border-radius: 50%; background: #2a8a6a; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; color: white; border: 2px solid rgba(255,255,255,0.3); flex-shrink: 0; }
+  .emp-name { font-size: 17px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .emp-known-as { font-size: 12px; color: rgba(255,255,255,0.65); margin-top: 1px; }
+  .emp-divider { width: 1px; background: rgba(255,255,255,0.2); align-self: stretch; margin: 16px 0; }
+  .emp-field-label { font-size: 11px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
+  .emp-field-value { font-size: 14px; font-weight: 500; }
+  .emp-spacer { flex: 1; }
+
+  /* PROFILE TABS */
+  .profile-tabs { background: white; border-bottom: 1px solid var(--border); display: flex; padding: 0 24px; }
+  .profile-tab { padding: 14px 20px; font-size: 13px; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .profile-tab:hover { color: var(--text-primary); }
+  .profile-tab.active { color: var(--navy); border-bottom-color: var(--teal); font-weight: 500; }
+
+  /* LAYOUT */
+  .page-body { max-width: 1200px; margin: 0 auto; padding: 24px; }
+  .top-grid { display: grid; grid-template-columns: 1fr 340px; gap: 16px; margin-bottom: 20px; }
+
+  /* CARDS */
+  .card { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
+  .card-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px; border-bottom: 1px solid var(--border); }
+  .card-title { font-size: 13px; font-weight: 600; }
+  .card-action { font-size: 12px; color: var(--teal); cursor: pointer; text-decoration: none; }
+  .card-body { padding: 16px 20px; }
+  .pay-info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .pay-field-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .pay-field-value { font-size: 14px; font-weight: 500; }
+  .ytd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .ytd-label { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
+  .ytd-value { font-size: 15px; font-weight: 600; }
+
+  /* SECTION CARD + TABS */
+  .section-card { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
+  .section-tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 20px; }
+  .section-tab { padding: 14px 16px; font-size: 13px; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+  .section-tab:hover { color: var(--text-primary); }
+  .section-tab.active { color: var(--navy); border-bottom-color: var(--teal); font-weight: 500; }
+  .section-content { display: none; }
+  .section-content.active { display: block; }
+
+  /* TOOLBAR */
+  .toolbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; gap: 12px; }
+  .search-wrap { position: relative; flex: 1; max-width: 320px; }
+  .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+  .search-input { width: 100%; padding: 8px 12px 8px 32px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; color: var(--text-primary); background: var(--surface); outline: none; }
+  .search-input:focus { border-color: var(--teal); background: white; }
+  .search-input::placeholder { color: var(--text-muted); }
+  .btn-add { display: flex; align-items: center; gap: 6px; padding: 8px 16px; background: var(--navy); color: white; border: none; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+  .btn-add:hover { background: var(--navy-light); }
+
+  /* DATA TABLE */
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table thead tr { background: var(--navy); }
+  .data-table thead th { padding: 11px 16px; text-align: left; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.9); letter-spacing: 0.02em; white-space: nowrap; }
+  .data-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  .data-table tbody tr:last-child { border-bottom: none; }
+  .data-table tbody tr:hover { background: var(--surface); }
+  .data-table tbody td { padding: 12px 16px; font-size: 13px; }
+  .data-table tbody td.muted { color: var(--text-secondary); }
+  .highlight-col { font-weight: 500; }
+
+  /* BADGES */
+  .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .badge-active { background: var(--success-bg); color: var(--success); }
+  .badge-ended { background: var(--surface-alt); color: var(--text-muted); }
+  .badge-pending { background: var(--warning-bg); color: var(--warning); }
+  .badge-priority { background: #fef3c7; color: #92400e; }
+  .badge-nonpriority { background: #eff6ff; color: #1e40af; }
+
+  /* ROW ACTIONS */
+  .row-actions { display: flex; gap: 8px; }
+  .icon-btn { width: 28px; height: 28px; border: 1px solid var(--border); border-radius: var(--radius); background: white; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-secondary); transition: all 0.15s; }
+  .icon-btn:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-light); }
+  .icon-btn.danger:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-bg); }
+
+  /* PAGINATION */
+  .pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-secondary); }
+  .page-controls { display: flex; align-items: center; gap: 4px; }
+  .page-btn { width: 28px; height: 28px; border: 1px solid var(--border); border-radius: var(--radius); background: white; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 12px; color: var(--text-secondary); transition: all 0.15s; }
+  .page-btn:hover { border-color: var(--teal); color: var(--teal); }
+  .page-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
+  .page-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+  .per-page-select { border: 1px solid var(--border); border-radius: var(--radius); padding: 4px 8px; font-size: 12px; background: white; cursor: pointer; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(13,61,79,0.45); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); width: 100%; max-width: 580px; max-height: 90vh; overflow-y: auto; animation: modal-in 0.18s ease; }
+  @keyframes modal-in { from { opacity: 0; transform: translateY(-12px) scale(0.98); } to { opacity: 1; transform: none; } }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: white; z-index: 10; }
+  .modal-title { font-size: 15px; font-weight: 600; color: var(--navy); }
+  .modal-close { width: 28px; height: 28px; border: none; background: none; color: var(--text-muted); cursor: pointer; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; font-size: 18px; line-height: 1; }
+  .modal-close:hover { background: var(--surface-alt); color: var(--text-primary); }
+  .modal-body { padding: 20px 24px; }
+  .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; position: sticky; bottom: 0; background: white; }
+
+  /* FORM */
+  .form-row { display: grid; gap: 16px; margin-bottom: 16px; }
+  .form-row.cols-2 { grid-template-columns: 1fr 1fr; }
+  .form-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-label { font-size: 12px; font-weight: 500; color: var(--text-primary); }
+  .form-label span { color: var(--danger); margin-left: 2px; }
+  .form-control { padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; color: var(--text-primary); background: white; outline: none; width: 100%; transition: border-color 0.15s; }
+  .form-control:focus { border-color: var(--teal); box-shadow: 0 0 0 2px rgba(29,138,154,0.1); }
+  .form-hint { font-size: 11px; color: var(--text-muted); }
+  .form-section-title { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 20px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+  /* TOGGLES */
+  .end-toggle, .deduction-toggle, .recur-toggle { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 10px; }
+  .end-toggle-btn, .deduction-toggle-btn, .recur-toggle-btn { flex: 1; padding: 8px 10px; border: none; background: white; font-size: 12px; cursor: pointer; color: var(--text-secondary); transition: all 0.15s; }
+  .end-toggle-btn.active, .deduction-toggle-btn.active, .recur-toggle-btn.active { background: var(--navy); color: white; font-weight: 500; }
+  .end-toggle-btn:not(.active):hover, .deduction-toggle-btn:not(.active):hover, .recur-toggle-btn:not(.active):hover { background: var(--surface); }
+
+  /* BUTTONS */
+  .btn { padding: 9px 18px; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-primary { background: var(--teal); color: white; }
+  .btn-primary:hover { background: #167a88; }
+  .btn-secondary { background: white; color: var(--text-primary); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--surface); }
+
+  /* INFO BANNER */
+  .info-banner { background: #e8f6f8; border: 1px solid #b3dfe5; border-radius: var(--radius); padding: 10px 14px; font-size: 12px; color: #0a5a6b; margin-bottom: 16px; display: flex; gap: 8px; align-items: flex-start; }
+  .info-banner svg { flex-shrink: 0; margin-top: 1px; }
+
+  /* DOCUMENT CHECKLIST */
+  .doc-checklist { display: flex; flex-direction: column; gap: 8px; }
+  .doc-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: white; cursor: pointer; transition: all 0.15s; }
+  .doc-item:hover { border-color: var(--teal); background: var(--teal-light); }
+  .doc-item.checked { border-color: var(--success); background: var(--success-bg); }
+  .doc-checkbox { width: 18px; height: 18px; border: 2px solid var(--border-dark); border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; transition: all 0.15s; background: white; }
+  .doc-item.checked .doc-checkbox { background: var(--success); border-color: var(--success); }
+  .doc-checkmark { display: none; color: white; font-size: 11px; font-weight: 700; }
+  .doc-item.checked .doc-checkmark { display: block; }
+  .doc-info { flex: 1; }
+  .doc-name { font-size: 13px; font-weight: 500; }
+  .doc-item.checked .doc-name { color: var(--success); }
+  .doc-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .doc-required { font-size: 10px; color: var(--danger); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .doc-optional { font-size: 10px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* QUALIFYING WEEKS INFO BOX */
+  .qweeks-info { background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; font-size: 12px; color: var(--text-secondary); min-height: 38px; }
+  .qweeks-info strong { color: var(--text-primary); }
+
+  footer { text-align: center; padding: 20px; font-size: 12px; color: var(--text-muted); }
+  footer a { color: var(--teal); text-decoration: none; }
+  @media (max-width: 768px) {
+    .top-grid { grid-template-columns: 1fr; }
+    .pay-info-grid { grid-template-columns: 1fr 1fr; }
+    .form-row.cols-2, .form-row.cols-3 { grid-template-columns: 1fr; }
+    .emp-header { flex-wrap: wrap; gap: 12px; padding: 14px 16px; }
+    .emp-divider { display: none; }
+    .page-body { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="emp-header">
+  <div class="emp-avatar">JW</div>
+  <div>
+    <div class="emp-name">Jane Wilson
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+    </div>
+    <div class="emp-known-as">Known as: Jane</div>
+  </div>
+  <div class="emp-divider"></div>
+  <div><div class="emp-field-label">Job role:</div><div class="emp-field-value">Area manager</div></div>
+  <div class="emp-divider"></div>
+  <div><div class="emp-field-label">Home site:</div><div class="emp-field-value">Revolution [Stoke-on-trent]</div></div>
+  <div class="emp-divider"></div>
+  <div><div class="emp-field-label">Payroll ID:</div><div class="emp-field-value">ABCD1234</div></div>
+  <div class="emp-divider"></div>
+  <div><div class="emp-field-label">TAPs ID:</div><div class="emp-field-value">36789</div></div>
+  <div class="emp-spacer"></div>
+  <div style="padding:8px;cursor:pointer">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" opacity="0.7"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+  </div>
+</header>
+
+<nav class="profile-tabs">
+  <div class="profile-tab">Summary</div>
+  <div class="profile-tab">Employee info</div>
+  <div class="profile-tab">HR records</div>
+  <div class="profile-tab active">Payroll</div>
+  <div class="profile-tab">Documents</div>
+  <div class="profile-tab">Audit</div>
+</nav>
+
+<div class="page-body">
+  <div class="top-grid">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Pay Information</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1d8a9a" stroke-width="2" style="cursor:pointer"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </div>
+      <div class="card-body">
+        <div class="pay-info-grid">
+          <div><div class="pay-field-value">1257L</div><div class="pay-field-label">Tax Code</div></div>
+          <div><div class="pay-field-value">No</div><div class="pay-field-label">W1M1</div></div>
+          <div><div class="pay-field-value">No</div><div class="pay-field-label">Student Loan</div></div>
+          <div><div class="pay-field-value">M</div><div class="pay-field-label">NI Category</div></div>
+          <div><div class="pay-field-value">12345678901</div><div class="pay-field-label">HMRC Submission ID</div></div>
+          <div><div class="pay-field-value">No</div><div class="pay-field-label">Post Graduate Loan</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Year to Dates</span>
+        <a class="card-action" href="#">View more &rsaquo;</a>
+      </div>
+      <div class="card-body">
+        <div class="ytd-grid">
+          <div><div class="ytd-label">Gross Earnings</div><div class="ytd-value">£22,500</div></div>
+          <div><div class="ytd-label">Gross Earning for NI</div><div class="ytd-value">£9,568.80</div></div>
+          <div><div class="ytd-label">Gross Earnings for Tax</div><div class="ytd-value">£6,021.50</div></div>
+          <div><div class="ytd-label">Tax Paid</div><div class="ytd-value">£7,800.43</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABBED SECTION -->
+  <div class="section-card">
+    <div class="section-tabs">
+      <div class="section-tab active" data-tab="additions">Additions and Deductions</div>
+      <div class="section-tab" data-tab="lifetime">Life Time Events</div>
+      <div class="section-tab" data-tab="aoe">Attachment of Earnings</div>
+    </div>
+
+    <!-- TAB 1: ADDITIONS & DEDUCTIONS -->
+    <div class="section-content active" id="tab-additions">
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input class="search-input" type="text" placeholder="Search for a Pay Element…">
+        </div>
+        <button class="btn-add" onclick="openModal('add-modal')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Add
+        </button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr>
+            <th>Start date</th><th>End date / Occurrences</th><th>Pay Element details</th>
+            <th>Deduction</th><th></th>
+          </tr></thead>
+          <tbody id="add-tbody">
+            <tr>
+              <td>21/08/2021</td><td>21/08/2026</td>
+              <td class="highlight-col">Healthcare</td><td>£45</td>
+              <td><div class="row-actions">
+                <button class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <button class="icon-btn danger" title="Delete" onclick="deleteRow(this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+              </div></td>
+            </tr>
+            <tr>
+              <td>01/01/2020</td><td>01/01/2025</td>
+              <td class="highlight-col">Rent</td><td>£100</td>
+              <td><div class="row-actions">
+                <button class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <button class="icon-btn danger" title="Delete" onclick="deleteRow(this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+              </div></td>
+            </tr>
+            <tr>
+              <td>01/04/2024</td><td class="muted">12 occurrences</td>
+              <td class="highlight-col">Cycle to Work</td><td>£55</td>
+              <td><div class="row-actions">
+                <button class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <button class="icon-btn danger" title="Delete" onclick="deleteRow(this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+              </div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <span id="add-showing">Showing 1–3 of 3</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="page-controls">
+            <button class="page-btn disabled">«</button><button class="page-btn disabled">‹</button>
+            <button class="page-btn active">1</button><button class="page-btn">2</button>
+            <button class="page-btn">›</button><button class="page-btn">»</button>
+          </div>
+          <select class="per-page-select"><option>10</option><option>25</option><option>50</option></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: LIFE TIME EVENTS -->
+    <div class="section-content" id="tab-lifetime">
+      <div class="toolbar">
+        <div style="font-size:13px;color:var(--text-secondary)">Long-term statutory absences and life events</div>
+        <button class="btn-add" onclick="openModal('lifetime-modal')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Add event
+        </button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr>
+            <th>Event type</th><th>Start date</th><th>Expected return</th><th>Actual return</th>
+            <th>Pay type</th><th>AWE</th><th>Documents</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody id="lt-tbody">
+            <tr>
+              <td class="highlight-col">Maternity Leave</td>
+              <td>12/04/2025</td><td>12/04/2026</td><td>—</td><td>SMP</td><td>£500.00</td>
+              <td><span style="font-size:12px;color:var(--success)">1/1 docs</span></td>
+              <td><span class="badge badge-active">Active</span></td>
+              <td><div class="row-actions">
+                <button class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <button class="icon-btn danger" title="Delete" onclick="deleteRow(this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+              </div></td>
+            </tr>
+            <tr>
+              <td class="highlight-col">Paternity Leave</td>
+              <td>15/04/2024</td><td>29/04/2024</td><td>29/04/2024</td><td>SPP</td><td>£500.00</td>
+              <td><span style="font-size:12px;color:var(--success)">2/2 docs</span></td>
+              <td><span class="badge badge-ended">Ended</span></td>
+              <td><div class="row-actions">
+                <button class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <button class="icon-btn danger" title="Delete" onclick="deleteRow(this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+              </div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <span id="lt-showing">Showing 1–2 of 2</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="page-controls">
+            <button class="page-btn disabled">«</button><button class="page-btn disabled">‹</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">›</button><button class="page-btn">»</button>
+          </div>
+          <select class="per-page-select"><option>10</option><option>25</option></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: ATTACHMENT OF EARNINGS -->
+    <div class="section-content" id="tab-aoe">
+      <div class="toolbar">
+        <div style="font-size:13px;color:var(--text-secondary)">Court and statutory deduction orders</div>
+        <button class="btn-add" onclick="openModal('aoe-modal')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Add order
+        </button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr>
+            <th>Order type</th><th>Reference</th><th>Issuing body</th><th>Method</th>
+            <th>Rate / Amount</th><th>Outstanding</th><th>Start date</th><th>Priority</th><th></th>
+          </tr></thead>
+          <tbody id="aoe-tbody">
+            <tr>
+              <td class="highlight-col">NPAEO</td>
+              <td class="muted">CCJ-2023-88452</td>
+              <td>Stoke County Court</td>
+              <td>Fixed amount</td><td>£75.00/period</td><td>£1,200.00</td>
+              <td>14/06/2023</td>
+              <td><span class="badge badge-nonpriority">Non-priority</span></td>
+              <td><div class="row-actions">
+                <button class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <button class="icon-btn danger" title="Delete" onclick="deleteRow(this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+              </div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <span id="aoe-showing">Showing 1–1 of 1</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="page-controls">
+            <button class="page-btn disabled">«</button><button class="page-btn disabled">‹</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">›</button><button class="page-btn">»</button>
+          </div>
+          <select class="per-page-select"><option>10</option><option>25</option></select>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>Copyright &copy; <a href="#">S4labour Ltd</a> 2025 &nbsp;|&nbsp; <a href="#">Privacy</a> &nbsp;|&nbsp; <a href="#">Contact Us</a> &nbsp;|&nbsp; <a href="#">Terms &amp; Conditions</a></footer>
+
+
+<!-- ══════════════════════════════════════
+     MODAL 1 — Add Pay Element
+══════════════════════════════════════ -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add pay element</span>
+      <button class="modal-close" onclick="closeModal('add-modal')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Pay element <span>*</span></label>
+          <select class="form-control" id="add-element">
+            <option value="">Select a pay element…</option>
+            <option>Healthcare</option><option>Rent</option><option>Pension</option>
+            <option>Childcare Vouchers</option><option>Cycle to Work</option><option>Other deduction</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label">Start date <span>*</span></label>
+          <input class="form-control" type="date" id="add-start">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount (£) <span>*</span></label>
+          <input class="form-control" type="number" step="0.01" placeholder="0.00" id="add-amount">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">When does this deduction stop?</label>
+          <div class="end-toggle">
+            <button class="end-toggle-btn active" onclick="setEndMode('date')" id="btn-end-date">End date</button>
+            <button class="end-toggle-btn" onclick="setEndMode('occurrences')" id="btn-end-occ">No. of occurrences</button>
+            <button class="end-toggle-btn" onclick="setEndMode('open')" id="btn-end-open">Open-ended</button>
+          </div>
+          <div id="end-date-field">
+            <input class="form-control" type="date" id="add-end" style="margin-top:0">
+          </div>
+          <div id="end-occ-field" style="display:none">
+            <input class="form-control" type="number" min="1" step="1" placeholder="e.g. 12" id="add-occurrences">
+            <span class="form-hint">Deduction stops automatically after this many pay periods</span>
+          </div>
+          <div id="end-open-field" style="display:none">
+            <span class="form-hint" style="display:block;margin-top:4px">Deduction continues until manually ended or employee leaves</span>
+          </div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Frequency</label>
+          <select class="form-control" id="add-freq">
+            <option>Each pay period</option><option>One-off</option><option>Annual</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('add-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addPayElement()">Save element</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     MODAL 2 — Add Life Time Event
+══════════════════════════════════════ -->
+<div class="modal-overlay" id="lifetime-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add life time event</span>
+      <button class="modal-close" onclick="closeModal('lifetime-modal')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Event type <span>*</span></label>
+          <select class="form-control" id="lt-type" onchange="onLTTypeChange(this.value)">
+            <option value="">Select event type…</option>
+            <option value="maternity">Maternity Leave (SMP)</option>
+            <option value="paternity">Paternity Leave (SPP)</option>
+            <option value="shared-parental">Shared Parental Leave (ShPP)</option>
+            <option value="adoption">Adoption Leave (SAP)</option>
+            <option value="bereavement">Parental Bereavement Leave (SPBeP)</option>
+            <option value="remission">Remission (cancer recovery / treatment)</option>
+            <option value="unpaid">Unpaid Leave / Career Break</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Maternity / Paternity / ShPP -->
+      <div id="lt-child-fields" style="display:none">
+        <div class="info-banner">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <div>Statutory pay is calculated from the 15th week before the EWC. <strong>Demo note:</strong> AWE below uses £500.00/week — in production this is auto-calculated from 8 weeks of actual payroll history.</div>
+        </div>
+        <div class="form-row cols-2">
+          <div class="form-group">
+            <label class="form-label">Expected week of childbirth (EWC) <span>*</span></label>
+            <input class="form-control" type="date" id="lt-ewc">
+            <span class="form-hint">Sunday of the week the baby is due</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Actual birth date</label>
+            <input class="form-control" type="date" id="lt-birth">
+          </div>
+        </div>
+      </div>
+
+      <!-- Adoption -->
+      <div id="lt-adoption-fields" style="display:none">
+        <div class="info-banner">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <div>SAP qualifying week is the week the employee was matched with a child. <strong>Demo note:</strong> AWE uses £500.00/week.</div>
+        </div>
+        <div class="form-row cols-2">
+          <div class="form-group">
+            <label class="form-label">Week of matching <span>*</span></label>
+            <input class="form-control" type="date" id="lt-matching">
+            <span class="form-hint">Sunday of the week the match was confirmed</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Placement date</label>
+            <input class="form-control" type="date" id="lt-placement">
+          </div>
+        </div>
+      </div>
+
+      <!-- Bereavement -->
+      <div id="lt-bereavement-fields" style="display:none">
+        <div class="info-banner">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <div>SPBeP applies to the loss of a child under 18 or a stillbirth after 24 weeks. Entitlement: 2 weeks' leave and pay. <strong>Demo note:</strong> AWE uses £500.00/week.</div>
+        </div>
+        <div class="form-row cols-2">
+          <div class="form-group">
+            <label class="form-label">Date of bereavement <span>*</span></label>
+            <input class="form-control" type="date" id="lt-bereavdate">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Child's date of birth</label>
+            <input class="form-control" type="date" id="lt-childDob">
+          </div>
+        </div>
+      </div>
+
+      <!-- Remission -->
+      <div id="lt-remission-fields" style="display:none">
+        <div class="info-banner">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <div>Remission covers leave for cancer treatment or recovery. No statutory pay entitlement — pay is subject to the employer's contractual or discretionary sick pay policy.</div>
+        </div>
+      </div>
+
+      <!-- Required documents (populated by JS) -->
+      <div id="lt-docs-section" style="display:none">
+        <div class="form-section-title">Required documentation</div>
+        <div class="doc-checklist" id="lt-docs-list"></div>
+        <span class="form-hint" style="margin-top:6px;display:block">Click each item to mark as received. Documents must be retained for 3 years after the end of the tax year in which they were used (HMRC Reg. 9).</span>
+      </div>
+
+      <div class="form-section-title">Leave dates</div>
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label">Start date <span>*</span></label>
+          <input class="form-control" type="date" id="lt-start">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Expected return date</label>
+          <input class="form-control" type="date" id="lt-expected-return">
+        </div>
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label">Actual return date</label>
+          <input class="form-control" type="date" id="lt-actual-return">
+          <span class="form-hint">Complete when employee returns</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-control" id="lt-status">
+            <option value="Active">Active</option>
+            <option value="Pending">Pending</option>
+            <option value="Ended">Ended</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Statutory pay details (shown only for statutory types) -->
+      <div id="lt-statutory-fields" style="display:none">
+        <div class="form-section-title">Statutory pay details</div>
+        <div class="form-row cols-2">
+          <div class="form-group">
+            <label class="form-label">Average weekly earnings (AWE)</label>
+            <div style="position:relative">
+              <input class="form-control" type="text" id="lt-awe" readonly
+                style="background:var(--surface-alt);color:var(--text-secondary);cursor:default;padding-right:106px">
+              <span id="lt-awe-calculating" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text-muted)">Calculating…</span>
+            </div>
+            <span class="form-hint">Auto-calculated from payroll history (demo: £500.00/week × 8‑week avg)</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Qualifying period (HMRC)</label>
+            <div class="qweeks-info" id="lt-qweeks-info">Select an event type above.</div>
+            <span class="form-hint">Fixed by HMRC legislation — not editable</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('lifetime-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addLifetimeEvent()">Save event</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     MODAL 3 — Add Attachment of Earnings
+══════════════════════════════════════ -->
+<div class="modal-overlay" id="aoe-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add attachment of earnings order</span>
+      <button class="modal-close" onclick="closeModal('aoe-modal')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="info-banner">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <div>Enter details exactly as shown on the order letter. Priority orders are applied before non-priority ones; within each tier, orders apply in date-received order.</div>
+      </div>
+
+      <div class="form-section-title">Order details</div>
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label">Order type <span>*</span></label>
+          <select class="form-control" id="aoe-type" onchange="onAOETypeChange(this.value)">
+            <option value="">Select order type…</option>
+            <optgroup label="Priority orders">
+              <option value="ctaeo">CTAEO – Council Tax AEO</option>
+              <option value="paeo">PAEO – Priority AEO (maintenance / fines)</option>
+              <option value="cpaeo">CPAEO – Consolidated Priority AEO</option>
+              <option value="deo">DEO – Child Maintenance (CMG)</option>
+              <option value="faeo">FAEO – Magistrates' court fine</option>
+            </optgroup>
+            <optgroup label="Non-priority orders">
+              <option value="npaeo">NPAEO – Non-Priority AEO (civil debt)</option>
+              <option value="cnpaeo">CNPAEO – Consolidated Non-Priority AEO</option>
+              <option value="dea">DEA – Direct Earnings Attachment (DWP)</option>
+            </optgroup>
+            <optgroup label="Scottish orders">
+              <option value="sea">SEA – Earnings Arrestment (Scotland)</option>
+              <option value="scma">SCMA – Current Maintenance Arrestment (Scotland)</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Order reference number</label>
+          <input class="form-control" type="text" placeholder="e.g. CT-2025-00123" id="aoe-ref">
+        </div>
+      </div>
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label">Issuing body <span>*</span></label>
+          <input class="form-control" type="text" placeholder="e.g. Stoke-on-Trent City Council" id="aoe-issuer">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Issue / received date <span>*</span></label>
+          <input class="form-control" type="date" id="aoe-start">
+        </div>
+      </div>
+
+      <div class="form-section-title">Deduction method</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Calculation method <span>*</span></label>
+          <div class="deduction-toggle">
+            <button class="deduction-toggle-btn" onclick="setAOEMethod('percent')" id="btn-percent">% of net earnings</button>
+            <button class="deduction-toggle-btn active" onclick="setAOEMethod('fixed')" id="btn-fixed">Fixed amount</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="aoe-percent-fields" style="display:none">
+        <div class="form-row cols-2">
+          <div class="form-group">
+            <label class="form-label">Percentage rate (%)</label>
+            <input class="form-control" type="number" step="0.01" value="10.00" id="aoe-rate">
+            <span class="form-hint">Defaults to 10%. Override if the order letter specifies a rate. Leave at 10% for HMRC tier-table types (CTAEO, DEA).</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Protected earnings (£/month)</label>
+            <input class="form-control" type="number" step="0.01" placeholder="0.00" id="aoe-protected-pct">
+            <span class="form-hint">Minimum take-home after all deductions</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="aoe-fixed-fields">
+        <div class="form-row cols-2">
+          <div class="form-group">
+            <label class="form-label">Fixed amount (£) <span>*</span></label>
+            <input class="form-control" type="number" step="0.01" placeholder="0.00" id="aoe-fixed-amount">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Protected earnings (£/month)</label>
+            <input class="form-control" type="number" step="0.01" placeholder="0.00" id="aoe-protected-fixed">
+            <span class="form-hint">Minimum take-home after all deductions</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section-title">Recurrence</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">How long should this deduction run?</label>
+          <div class="recur-toggle">
+            <button class="recur-toggle-btn" onclick="setAOERecur('count')" id="btn-recur-count">Set number of payments</button>
+            <button class="recur-toggle-btn active" onclick="setAOERecur('amount')" id="btn-recur-amount">Until amount is paid</button>
+            <button class="recur-toggle-btn" onclick="setAOERecur('open')" id="btn-recur-open">Ongoing (no end)</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="aoe-recur-count-field" style="display:none">
+        <div class="form-row cols-2">
+          <div class="form-group">
+            <label class="form-label">Number of payments <span>*</span></label>
+            <input class="form-control" type="number" min="1" step="1" placeholder="e.g. 12" id="aoe-payment-count">
+            <span class="form-hint">Deduction stops automatically after this many pay periods</span>
+          </div>
+          <div></div>
+        </div>
+      </div>
+
+      <div id="aoe-recur-amount-field">
+        <div class="form-row cols-2">
+          <div class="form-group">
+            <label class="form-label">Total amount ordered (£)</label>
+            <input class="form-control" type="number" step="0.01" placeholder="0.00" id="aoe-total">
+            <span class="form-hint">Full amount on the order letter</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Already paid to date (£)</label>
+            <input class="form-control" type="number" step="0.01" placeholder="0.00" id="aoe-paid">
+            <span class="form-hint">Use when taking over a mid-order</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="aoe-recur-open-field" style="display:none">
+        <span class="form-hint" style="display:block;margin-bottom:12px">Deduction continues each pay period until the issuing authority sends a stop notice.</span>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('aoe-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addAOE()">Save order</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  /* ── TAB SWITCHING ── */
+  document.querySelectorAll('.section-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.section-tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.section-content').forEach(function(c) { c.classList.remove('active'); });
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  /* ── MODAL HELPERS ── */
+  function openModal(id) { document.getElementById(id).classList.add('open'); document.body.style.overflow = 'hidden'; }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow = ''; }
+  document.querySelectorAll('.modal-overlay').forEach(function(o) {
+    o.addEventListener('click', function(e) { if (e.target === o) closeModal(o.id); });
+  });
+
+  /* ── DELETE ROW ── */
+  function deleteRow(btn) { if (confirm('Remove this entry?')) btn.closest('tr').remove(); }
+
+  /* ── FORMAT DATE ── */
+  function fmtDate(v) {
+    if (!v) return '—';
+    var p = v.split('-');
+    return p.length === 3 ? p[2]+'/'+p[1]+'/'+p[0] : v;
+  }
+
+  /* ── SHARED ACTION BUTTONS ── */
+  var editSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+  var delSvg  = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+  function actionBtns() {
+    return '<div class="row-actions"><button class="icon-btn" title="Edit">'+editSvg+'</button>'
+      + '<button class="icon-btn danger" title="Delete" onclick="deleteRow(this)">'+delSvg+'</button></div>';
+  }
+
+  /* ── UPDATE ROW COUNT ── */
+  function updateCount(spanId, tbody) {
+    var n = tbody.querySelectorAll('tr').length;
+    document.getElementById(spanId).textContent = 'Showing 1–' + n + ' of ' + n;
+  }
+
+  /* ══════════════════════════════════════
+     ADDITIONS & DEDUCTIONS
+  ══════════════════════════════════════ */
+  var endMode = 'date';
+  function setEndMode(mode) {
+    endMode = mode;
+    document.getElementById('btn-end-date').classList.toggle('active', mode === 'date');
+    document.getElementById('btn-end-occ').classList.toggle('active',  mode === 'occurrences');
+    document.getElementById('btn-end-open').classList.toggle('active', mode === 'open');
+    document.getElementById('end-date-field').style.display = mode === 'date'        ? 'block' : 'none';
+    document.getElementById('end-occ-field').style.display  = mode === 'occurrences' ? 'block' : 'none';
+    document.getElementById('end-open-field').style.display = mode === 'open'        ? 'block' : 'none';
+  }
+
+  function addPayElement() {
+    var el     = document.getElementById('add-element').value;
+    var start  = document.getElementById('add-start').value;
+    var amount = document.getElementById('add-amount').value;
+    if (!el || !start || !amount) { alert('Please fill in all required fields.'); return; }
+    var endDisplay;
+    if (endMode === 'date') {
+      var d = document.getElementById('add-end').value;
+      endDisplay = d ? fmtDate(d) : '—';
+    } else if (endMode === 'occurrences') {
+      var o = document.getElementById('add-occurrences').value;
+      endDisplay = o ? '<span class="muted">'+o+' occurrences</span>' : '—';
+    } else {
+      endDisplay = '<span class="muted">Open-ended</span>';
+    }
+    var tbody = document.getElementById('add-tbody');
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>'+fmtDate(start)+'</td><td>'+endDisplay+'</td>'
+      + '<td class="highlight-col">'+el+'</td>'
+      + '<td>£'+parseFloat(amount).toFixed(2)+'</td>'
+      + '<td>'+actionBtns()+'</td>';
+    tbody.appendChild(tr);
+    updateCount('add-showing', tbody);
+    closeModal('add-modal');
+    document.getElementById('add-element').value = '';
+    document.getElementById('add-start').value = '';
+    document.getElementById('add-end').value = '';
+    document.getElementById('add-amount').value = '';
+    document.getElementById('add-occurrences').value = '';
+    setEndMode('date');
+  }
+
+  /* ══════════════════════════════════════
+     LIFE TIME EVENTS
+  ══════════════════════════════════════ */
+  var ltStatutoryTypes = ['maternity','paternity','shared-parental','adoption','bereavement'];
+  var ltChildTypes     = ['maternity','paternity','shared-parental'];
+  var ltPayMap = { maternity:'SMP', paternity:'SPP', 'shared-parental':'ShPP', adoption:'SAP', bereavement:'SPBeP', remission:'—', unpaid:'—' };
+
+  var ltQweeksText = {
+    maternity:        '<strong>26 weeks</strong> continuous employment by the 15th week before the EWC (qualifying week)',
+    paternity:        '<strong>26 weeks</strong> continuous employment by the 15th week before the EWC or matching week',
+    'shared-parental':'<strong>26 weeks</strong> continuous employment by the end of the 15th week before the EWC',
+    adoption:         '<strong>26 weeks</strong> continuous employment ending with the week of matching',
+    bereavement:      '<strong>26 weeks</strong> continuous employment at the date of the child\'s death or stillbirth'
+  };
+
+  /* HMRC-sourced required documents per event type */
+  var ltDocs = {
+    maternity: [
+      { name:'MATB1 certificate', desc:'Issued by midwife or GP — confirms EWC. Must be received before SMP is paid.', required:true },
+      { name:'Written notice of leave', desc:'Employee\'s notification of intended start date, at least 28 days before leave begins.', required:true },
+      { name:'SMP1 form (if not eligible)', desc:'Issued to employee if they do not qualify for SMP, so they may claim Maternity Allowance.', required:false }
+    ],
+    paternity: [
+      { name:'SC3 employee declaration (SPP)', desc:'Self-certification confirming relationship to the mother/child and intended leave dates.', required:true },
+      { name:'Written notice of leave', desc:'Written notification at least 28 days before leave (or as soon as reasonably practicable).', required:true }
+    ],
+    'shared-parental': [
+      { name:'Mother\'s curtailment notice', desc:'Signed notice from the mother ending her maternity leave/pay early to enable ShPP.', required:true },
+      { name:'SPL notice of entitlement and intention', desc:'Employee\'s formal notice of entitlement to Shared Parental Leave.', required:true },
+      { name:'Partner employer declaration', desc:'Signed declaration from the partner\'s employer confirming qualifying conditions are met.', required:true },
+      { name:'MATB1 certificate (copy)', desc:'Copy of the original MATB1 to establish the EWC.', required:false }
+    ],
+    adoption: [
+      { name:'Matching certificate from adoption agency', desc:'Official documentation confirming the match and date. Must be from the adoption agency.', required:true },
+      { name:'SC4 employee declaration (SAP)', desc:'Employee declaration confirming they have elected to receive SAP rather than SMP.', required:true },
+      { name:'Written notice of leave', desc:'Written notification at least 28 days before SAP is to begin.', required:true }
+    ],
+    bereavement: [
+      { name:'Written notice of leave', desc:'Employee notice specifying dates of the 1 or 2-week block(s) of parental bereavement leave.', required:true },
+      { name:'Child\'s death or stillbirth certificate', desc:'Evidence of the bereavement. Can be requested by the employer within 28 days of the leave notice.', required:false }
+    ]
+  };
+
+  function onLTTypeChange(val) {
+    document.getElementById('lt-child-fields').style.display       = ltChildTypes.indexOf(val) > -1 ? 'block' : 'none';
+    document.getElementById('lt-adoption-fields').style.display    = val === 'adoption'    ? 'block' : 'none';
+    document.getElementById('lt-bereavement-fields').style.display = val === 'bereavement' ? 'block' : 'none';
+    document.getElementById('lt-remission-fields').style.display   = val === 'remission'   ? 'block' : 'none';
+
+    var docsSection = document.getElementById('lt-docs-section');
+    var docsList    = document.getElementById('lt-docs-list');
+    if (ltDocs[val]) {
+      docsSection.style.display = 'block';
+      docsList.innerHTML = '';
+      ltDocs[val].forEach(function(doc) {
+        var item = document.createElement('div');
+        item.className = 'doc-item';
+        item.innerHTML = '<div class="doc-checkbox"><span class="doc-checkmark">&#10003;</span></div>'
+          + '<div class="doc-info">'
+          + '<div class="doc-name">'+doc.name
+          + ' &nbsp;<span class="'+(doc.required ? 'doc-required' : 'doc-optional')+'">'
+          + (doc.required ? 'Required' : 'Optional')+'</span></div>'
+          + '<div class="doc-desc">'+doc.desc+'</div>'
+          + '</div>';
+        item.addEventListener('click', function() { item.classList.toggle('checked'); });
+        docsList.appendChild(item);
+      });
+    } else {
+      docsSection.style.display = 'none';
+    }
+
+    var showStatutory = ltStatutoryTypes.indexOf(val) > -1;
+    document.getElementById('lt-statutory-fields').style.display = showStatutory ? 'block' : 'none';
+    if (showStatutory) {
+      document.getElementById('lt-qweeks-info').innerHTML = ltQweeksText[val] || '—';
+      var aweField  = document.getElementById('lt-awe');
+      var calcLabel = document.getElementById('lt-awe-calculating');
+      aweField.value = '';
+      calcLabel.textContent = 'Calculating…';
+      setTimeout(function() {
+        aweField.value = '£500.00';
+        calcLabel.textContent = 'Auto-calculated';
+      }, 900);
+    }
+  }
+
+  function addLifetimeEvent() {
+    var type      = document.getElementById('lt-type');
+    var typeVal   = type.value;
+    var typeLabel = type.options[type.selectedIndex].text;
+    var start     = document.getElementById('lt-start').value;
+    var expReturn = document.getElementById('lt-expected-return').value;
+    var actReturn = document.getElementById('lt-actual-return').value;
+    var aweRaw    = document.getElementById('lt-awe').value.replace('£','').trim();
+    var status    = document.getElementById('lt-status').value;
+    if (!typeVal || !start) { alert('Please fill in all required fields.'); return; }
+    var payType    = ltPayMap[typeVal] || '—';
+    var badgeClass = status === 'Active' ? 'badge-active' : status === 'Pending' ? 'badge-pending' : 'badge-ended';
+    var totalDocs   = document.querySelectorAll('#lt-docs-list .doc-item').length;
+    var checkedDocs = document.querySelectorAll('#lt-docs-list .doc-item.checked').length;
+    var docsCell    = totalDocs > 0
+      ? '<span style="font-size:12px;color:'+(checkedDocs===totalDocs ? 'var(--success)' : 'var(--warning)')+'">'+checkedDocs+'/'+totalDocs+' docs</span>'
+      : '—';
+    var tbody = document.getElementById('lt-tbody');
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td class="highlight-col">'+typeLabel.split(' (')[0]+'</td>'
+      + '<td>'+fmtDate(start)+'</td>'
+      + '<td>'+(expReturn ? fmtDate(expReturn) : '—')+'</td>'
+      + '<td>'+(actReturn ? fmtDate(actReturn) : '—')+'</td>'
+      + '<td>'+payType+'</td>'
+      + '<td>'+(aweRaw ? '£'+parseFloat(aweRaw).toFixed(2) : '—')+'</td>'
+      + '<td>'+docsCell+'</td>'
+      + '<td><span class="badge '+badgeClass+'">'+status+'</span></td>'
+      + '<td>'+actionBtns()+'</td>';
+    tbody.appendChild(tr);
+    updateCount('lt-showing', tbody);
+    closeModal('lifetime-modal');
+    document.getElementById('lt-type').value = '';
+    document.getElementById('lt-status').value = 'Active';
+    ['lt-start','lt-expected-return','lt-actual-return','lt-awe','lt-ewc','lt-birth',
+     'lt-matching','lt-placement','lt-bereavdate','lt-childDob'].forEach(function(id) {
+      document.getElementById(id).value = '';
+    });
+    ['lt-child-fields','lt-adoption-fields','lt-bereavement-fields',
+     'lt-remission-fields','lt-docs-section','lt-statutory-fields'].forEach(function(id) {
+      document.getElementById(id).style.display = 'none';
+    });
+  }
+
+  /* ══════════════════════════════════════
+     ATTACHMENT OF EARNINGS
+  ══════════════════════════════════════ */
+  var aoeMethod = 'fixed';
+  function setAOEMethod(method) {
+    aoeMethod = method;
+    document.getElementById('btn-percent').classList.toggle('active', method === 'percent');
+    document.getElementById('btn-fixed').classList.toggle('active',   method === 'fixed');
+    document.getElementById('aoe-percent-fields').style.display = method === 'percent' ? 'block' : 'none';
+    document.getElementById('aoe-fixed-fields').style.display   = method === 'fixed'   ? 'block' : 'none';
+  }
+
+  var aoeRecur = 'amount';
+  function setAOERecur(mode) {
+    aoeRecur = mode;
+    document.getElementById('btn-recur-count').classList.toggle('active',  mode === 'count');
+    document.getElementById('btn-recur-amount').classList.toggle('active', mode === 'amount');
+    document.getElementById('btn-recur-open').classList.toggle('active',   mode === 'open');
+    document.getElementById('aoe-recur-count-field').style.display  = mode === 'count'  ? 'block' : 'none';
+    document.getElementById('aoe-recur-amount-field').style.display = mode === 'amount' ? 'block' : 'none';
+    document.getElementById('aoe-recur-open-field').style.display   = mode === 'open'   ? 'block' : 'none';
+  }
+
+  var aoePercentTypes = ['ctaeo','dea','sea','scma'];
+  function onAOETypeChange(val) {
+    setAOEMethod(aoePercentTypes.indexOf(val) > -1 ? 'percent' : 'fixed');
+  }
+
+  var aoeTypeLabels = { ctaeo:'CTAEO', paeo:'PAEO', cpaeo:'CPAEO', deo:'DEO', faeo:'FAEO', npaeo:'NPAEO', cnpaeo:'CNPAEO', dea:'DEA', sea:'SEA', scma:'SCMA' };
+  var aoePriorityTypes = ['ctaeo','paeo','cpaeo','deo','faeo'];
+
+  function addAOE() {
+    var typeVal = document.getElementById('aoe-type').value;
+    var ref     = document.getElementById('aoe-ref').value;
+    var issuer  = document.getElementById('aoe-issuer').value;
+    var start   = document.getElementById('aoe-start').value;
+    if (!typeVal || !issuer || !start) { alert('Please fill in all required fields.'); return; }
+    var typeLabel  = aoeTypeLabels[typeVal] || typeVal.toUpperCase();
+    var isPriority = aoePriorityTypes.indexOf(typeVal) > -1;
+    var badgeClass = isPriority ? 'badge-priority' : 'badge-nonpriority';
+    var badgeLabel = isPriority ? 'Priority' : 'Non-priority';
+    var methodLabel= aoeMethod === 'percent' ? '% (rate)' : 'Fixed amount';
+    var rateLabel;
+    if (aoeMethod === 'percent') {
+      var r = document.getElementById('aoe-rate').value;
+      rateLabel = r ? r+'%' : 'Per table';
+    } else {
+      var a = document.getElementById('aoe-fixed-amount').value;
+      rateLabel = a ? '£'+parseFloat(a).toFixed(2)+'/period' : '—';
+    }
+    var outstanding;
+    if (aoeRecur === 'count') {
+      var cnt = document.getElementById('aoe-payment-count').value;
+      outstanding = cnt ? cnt+' payments' : 'N/A';
+    } else if (aoeRecur === 'amount') {
+      var total = document.getElementById('aoe-total').value;
+      var paid  = document.getElementById('aoe-paid').value;
+      outstanding = total ? '£'+(parseFloat(total)-parseFloat(paid||0)).toFixed(2) : 'Ongoing';
+    } else {
+      outstanding = 'Ongoing';
+    }
+    var tbody = document.getElementById('aoe-tbody');
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td class="highlight-col">'+typeLabel+'</td>'
+      + '<td class="muted">'+(ref||'—')+'</td>'
+      + '<td>'+issuer+'</td>'
+      + '<td>'+methodLabel+'</td>'
+      + '<td>'+rateLabel+'</td>'
+      + '<td>'+outstanding+'</td>'
+      + '<td>'+fmtDate(start)+'</td>'
+      + '<td><span class="badge '+badgeClass+'">'+badgeLabel+'</span></td>'
+      + '<td>'+actionBtns()+'</td>';
+    tbody.appendChild(tr);
+    updateCount('aoe-showing', tbody);
+    closeModal('aoe-modal');
+    document.getElementById('aoe-type').value = '';
+    document.getElementById('aoe-ref').value  = '';
+    document.getElementById('aoe-issuer').value = '';
+    document.getElementById('aoe-start').value = '';
+    document.getElementById('aoe-total').value = '';
+    document.getElementById('aoe-paid').value  = '';
+    document.getElementById('aoe-payment-count').value = '';
+    document.getElementById('aoe-fixed-amount').value  = '';
+    setAOEMethod('fixed');
+    setAOERecur('amount');
+    document.getElementById('aoe-rate').value = '10.00';
+  }
+</script>
+</body>
+</html>
