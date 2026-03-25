@@ -38,22 +38,39 @@
   .profile-tab:hover { color: var(--text-primary); }
   .profile-tab.active { background: var(--navy); color: white; border-bottom-color: transparent; font-weight: 500; }
 
-  /* LAYOUT */
   .page-body { max-width: 1200px; margin: 0 auto; padding: 24px; }
-  .top-grid { display: grid; grid-template-columns: 1fr 340px; gap: 16px; margin-bottom: 20px; }
+  .top-grid { display: grid; grid-template-columns: 260px 1fr; gap: 16px; margin-bottom: 20px; }
 
   /* CARDS */
   .card { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
-  .card-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px; border-bottom: 1px solid var(--border); }
-  .card-title { font-size: 13px; font-weight: 600; }
+  .card-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .card-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
   .card-action { font-size: 12px; color: var(--teal); cursor: pointer; text-decoration: none; }
-  .card-body { padding: 16px 20px; }
-  .pay-info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .pay-field-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
-  .pay-field-value { font-size: 14px; font-weight: 500; }
-  .ytd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .ytd-label { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
-  .ytd-value { font-size: 15px; font-weight: 600; }
+  .card-body { padding: 0; }
+
+  /* ── PAY INFORMATION — compact key:value list ── */
+  .pay-info-list { display: flex; flex-direction: column; }
+  .pay-info-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; border-bottom: 1px solid var(--border); gap: 8px; }
+  .pay-info-row:last-child { border-bottom: none; }
+  .pay-info-label { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+  .pay-info-value { font-size: 12px; font-weight: 600; color: var(--text-primary); text-align: right; }
+  .pay-info-value.pill { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .pill-yes  { background: var(--success-bg); color: var(--success); }
+  .pill-no   { background: var(--surface-alt); color: var(--text-muted); }
+
+  /* ── YTD — grouped sections ── */
+  .ytd-sections { display: flex; flex-direction: column; }
+  .ytd-group { padding: 10px 16px 8px; }
+  .ytd-group + .ytd-group { border-top: 1px solid var(--border); }
+  .ytd-group-header { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .ytd-group-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .ytd-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
+  .ytd-field { display: flex; align-items: baseline; justify-content: space-between; padding: 3px 0; }
+  .ytd-label { font-size: 11px; color: var(--text-secondary); white-space: nowrap; margin-right: 8px; }
+  .ytd-value { font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+  .ytd-net-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--teal-light, #e8f6f8); border-top: 1px solid var(--teal-mid, #b3dfe5); border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+  .ytd-net-label { font-size: 12px; font-weight: 700; color: var(--teal); }
+  .ytd-net-value { font-size: 16px; font-weight: 700; color: var(--teal); }
 
   /* SECTION CARD + TABS */
   .section-card { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
@@ -281,16 +298,16 @@
     <div class="card">
       <div class="card-header">
         <span class="card-title">Pay Information</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1d8a9a" stroke-width="2" style="cursor:pointer"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1d8a9a" stroke-width="2" style="cursor:pointer"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </div>
       <div class="card-body">
-        <div class="pay-info-grid">
-          <div><div class="pay-field-value">1257L</div><div class="pay-field-label">Tax Code</div></div>
-          <div><div class="pay-field-value">No</div><div class="pay-field-label">W1M1</div></div>
-          <div><div class="pay-field-value">No</div><div class="pay-field-label">Student Loan</div></div>
-          <div><div class="pay-field-value">M</div><div class="pay-field-label">NI Category</div></div>
-          <div><div class="pay-field-value">12345678901</div><div class="pay-field-label">HMRC Submission ID</div></div>
-          <div><div class="pay-field-value">No</div><div class="pay-field-label">Post Graduate Loan</div></div>
+        <div class="pay-info-list">
+          <div class="pay-info-row"><span class="pay-info-label">Tax Code</span><span class="pay-info-value">1257L</span></div>
+          <div class="pay-info-row"><span class="pay-info-label">NI Category</span><span class="pay-info-value">M</span></div>
+          <div class="pay-info-row"><span class="pay-info-label">HMRC Submission ID</span><span class="pay-info-value">12345678901</span></div>
+          <div class="pay-info-row"><span class="pay-info-label">W1M1</span><span class="pay-info-value"><span class="pay-info-value pill pill-no">No</span></span></div>
+          <div class="pay-info-row"><span class="pay-info-label">Student Loan</span><span class="pay-info-value"><span class="pay-info-value pill pill-no">No</span></span></div>
+          <div class="pay-info-row"><span class="pay-info-label">Post Graduate Loan</span><span class="pay-info-value"><span class="pay-info-value pill pill-no">No</span></span></div>
         </div>
       </div>
     </div>
@@ -300,19 +317,38 @@
         <a class="card-action" href="#">View more &rsaquo;</a>
       </div>
       <div class="card-body">
-        <div class="ytd-grid">
-          <div class="ytd-group-label">Earnings</div>
-          <div><div class="ytd-label">Gross Earnings</div><div class="ytd-value">£22,500.00</div></div>
-          <div><div class="ytd-label">Taxable Pay</div><div class="ytd-value">£13,072.50</div></div>
-          <div><div class="ytd-label">NIable Pay</div><div class="ytd-value">£22,500.00</div></div>
-          <div class="ytd-group-label">Tax &amp; NI</div>
-          <div><div class="ytd-label">Tax Paid (PAYE)</div><div class="ytd-value">£2,614.50</div></div>
-          <div><div class="ytd-label">Employee NI</div><div class="ytd-value">£1,045.80</div></div>
-          <div><div class="ytd-label">Employer NI</div><div class="ytd-value">£0.00</div></div>
-          <div class="ytd-group-label">Pension</div>
-          <div><div class="ytd-label">Employee Pension</div><div class="ytd-value">£891.00</div></div>
-          <div><div class="ytd-label">Employer Pension</div><div class="ytd-value">£534.60</div></div>
-          <div><div class="ytd-label">Net Pay</div><div class="ytd-value" style="color:var(--teal)">£17,948.70</div></div>
+        <div class="ytd-sections">
+
+          <div class="ytd-group">
+            <div class="ytd-group-header">Earnings</div>
+            <div class="ytd-fields">
+              <div class="ytd-field"><span class="ytd-label">Gross Earnings</span><span class="ytd-value">£22,500.00</span></div>
+              <div class="ytd-field"><span class="ytd-label">Taxable Pay</span><span class="ytd-value">£13,072.50</span></div>
+              <div class="ytd-field"><span class="ytd-label">NIable Pay</span><span class="ytd-value">£22,500.00</span></div>
+            </div>
+          </div>
+
+          <div class="ytd-group">
+            <div class="ytd-group-header">Tax &amp; NI</div>
+            <div class="ytd-fields">
+              <div class="ytd-field"><span class="ytd-label">Tax Paid (PAYE)</span><span class="ytd-value">£2,614.50</span></div>
+              <div class="ytd-field"><span class="ytd-label">Employee NI</span><span class="ytd-value">£1,045.80</span></div>
+              <div class="ytd-field"><span class="ytd-label">Employer NI</span><span class="ytd-value">£0.00</span></div>
+            </div>
+          </div>
+
+          <div class="ytd-group">
+            <div class="ytd-group-header">Pension</div>
+            <div class="ytd-fields">
+              <div class="ytd-field"><span class="ytd-label">Employee</span><span class="ytd-value">£891.00</span></div>
+              <div class="ytd-field"><span class="ytd-label">Employer</span><span class="ytd-value">£534.60</span></div>
+            </div>
+          </div>
+
+        </div>
+        <div class="ytd-net-row">
+          <span class="ytd-net-label">Net Pay (YTD)</span>
+          <span class="ytd-net-value">£17,948.70</span>
         </div>
       </div>
     </div>
